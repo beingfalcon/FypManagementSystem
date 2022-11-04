@@ -1,0 +1,68 @@
+
+<div>
+    <form name="regForm" action="/users/registerUser" method="post" onsubmit="return validateForm()">
+        <div class="form-group">
+            <label for="fname">First Name</label>
+            <input class="form-control" type="text" id="fname" name="fname" placeholder="Enter Your First Name..">
+
+            <label for="lname">Last Name</label>
+            <input class="form-control" type="text" id="lname" name="lname" placeholder="Enter Your Last Name..">
+            <label for="profilePic">Profile Picture</label>
+            <input class="form-control" type="text" id="profilePic" name="profilePic">
+
+            <br>
+            <label for="birthday">Birthday:</label>
+            <br>
+            <input class="form-control" type="date" id="birthday" name="birthday">
+            <br>
+            <br>
+
+            <label for="username">Username</label>
+            <input class="form-control" type="text" id="username" name="username" placeholder="Enter Username..">
+
+            <label for="email">Email</label>
+            <input class="form-control" type="text" id="email" name="email" placeholder="Enter Your Email..">
+
+            <label for="phone">Phone No</label>
+            <h4>Use any of following format</h4>
+            <ul>
+                <li>
+                    123-345-3456
+                </li>
+                <li>
+                    (078)789-8908
+                </li>
+                <li>
+                    (078) 789-8908 'Note the space'
+                </li>
+            </ul>
+            <input class="form-control" type="text" id="phone" name="phone" placeholder="Enter Your Phone Number..">
+            <br>
+            <label for="country">Country</label>
+            <select name="country" id="country">
+                <option value="">Select Country</option>
+                <option value="pakistan">Pakistan</option>
+                <option value="usa">USA</option>
+                <option value="england">England</option>
+            </select>
+
+            <label for="password">Password</label>
+            <h4>Passsowrd Must Contain</h4>
+            <ul>
+                <li>
+                    password between 7 to 20 characters
+                </li>
+                <li>
+                    least one numeric digit
+                </li>
+                <li>
+                    a special character
+                </li>
+            </ul>
+            <input type="password" id="password" name="password" placeholder="Enter Your Password Here.." class="form-control">
+
+            <input class="btn btn-primary" type="submit" value="Submit">
+        </div>
+    </form>
+</div>
+<script src="/public/js/validateForm.js"></script>

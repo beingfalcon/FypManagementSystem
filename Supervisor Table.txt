@@ -1,0 +1,15 @@
+CREATE TABLE supervisorReg
+(
+  id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  name varchar(50),
+  dob varchar(20),
+  gender varchar(20),
+  email varchar(50),
+  phone varchar(20),
+  country varchar(30),
+  department varchar(20),
+  experties varchar(30),
+  groups int,
+  password varchar(20) not null,
+  profilePic varchar(50)
+);

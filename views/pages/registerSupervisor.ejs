@@ -1,0 +1,55 @@
+<div>
+    <form name="regForm" action="/supervisors/registerSupervisor" method="post">
+        <div class="form-group">
+            <label for="name">Name</label>
+            <input class="form-control" type="text" id="name" name="name" placeholder="Enter Your Name..">
+            <label for="profilePic">Profile Picture</label>
+            <input class="form-control" type="text" id="profilePic" name="profilePic">
+
+            <label for="dob">dob</label>
+            <input class="form-control" type="date" id="dob" name="dob">
+
+            <br>
+            <label for="cars">Choose Gender:</label>
+            <select id="gender" name="gender">
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+            </select>
+            <br>
+            <label for="email">Email</label>
+            <input class="form-control" type="text" id="email" name="email" placeholder="Enter Your Email..">
+
+            <label for="phone">Phone No</label>
+            <input class="form-control" type="text" id="phone" name="phone" placeholder="Enter Your Phone Number..">
+            <br>
+            <label for="country">Country</label>
+            <select name="country" id="country">
+                <option value="">Select Country</option>
+                <option value="pakistan">Pakistan</option>
+                <option value="usa">USA</option>
+                <option value="england">England</option>
+            </select>
+            <br>
+            <label for="department">Choose Department:</label>
+            <select id="department" name="department">
+                <option value="CS">CS</option>
+                <option value="EE">EE</option>
+                <option value="SE">SE</option>
+                <option value="AI">AI</option>
+            </select>
+            <br>
+            <label for="experties">Enter Experties:</label>
+            <input class="form-control" type="text" id="experties" name="experties" placeholder="Enter Your Experties..">
+
+            
+            <label for="groups">Total FYP Groups:</label>
+            <input class="form-control" type="number" id="groups" name="groups" placeholder="ENter number of groups you can supervise">
+
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" placeholder="Enter Your Password Here.."
+                class="form-control">
+
+            <input class="btn btn-primary" type="submit" value="Submit">
+        </div>
+    </form>
+</div>

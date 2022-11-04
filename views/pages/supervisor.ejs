@@ -1,0 +1,166 @@
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css"
+    integrity="sha512-xh6O/CkQoPOWDdYTDqeRdPCVd1SpvCA9XXcUnZS2FmJNp1coAFzvtCN9BmamE+4aHK8yyUHUSCcJHgXloTyT2A=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
+<div class="container">
+    <br>
+    <a href="/supervisors/registerSupervisor" class="btn btn-primary">Register Supervisor</a>
+    <br>
+    <br>
+    <form name="searchForm" action="/supervisors" method="get">
+        <div class="input-group">
+            <div class="form-outline">
+                <input type="search" id="search" class="form-control" name="search" placeholder="Search by Name" />
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+    </form>
+</div>
+<div class="shell">
+    <div class="container">
+        <button class="btn" onclick="listView()"><i class="fa fa-bars"></i> List</button>
+        <button class="btn active" onclick="gridView()"><i class="fa fa-th-large"></i> Grid</button>
+        <div id="Card" class="row">
+            <% for(var i=0; i < data.length; i++) { %>
+                <div class="col-md-3">
+                    <div class="wsk-cp-product">
+                        <div class="wsk-cp-img">
+                            <img src="img/<%= data[i].profilePic %>" alt="Supervisor" class="img-responsive" />
+                        </div>
+                        <div class="wsk-cp-text">
+                            <div class="category">
+                                <span>
+                                    <%= data[i].name %>
+                                </span>
+                            </div>
+                            <div class="title-product">
+                                <h3>Age: <%= data[i].dob %>
+                                </h3>
+                            </div>
+                            <div class="description-prod">
+                                <p>
+                                    <%= data[i].email%>
+                                </p>
+                            </div>
+                            <form name="regForm" action="/supervisors/delete" method="post">
+                                <input data-confirm="Are you sure?" type="hidden" value="<%= data[i].id %>" id="id"
+                                    name="id">
+                                <input class="btn btn-primary" type="submit" value="Delete">
+                            </form>
+                            <form name="regForm" action="/supervisors/updateSupervisor" method="get">
+                                <input type="hidden" value="<%= data[i].id %>" id="id" name="id">
+                                <input class="btn btn-primary" type="submit" value="Update">
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <% } %>
+        </div>
+        <table id="List" class="table" style="display:none;">
+            <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Picture</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Name</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% for(var i=0; i < data.length; i++) { %>
+                    <tr>
+                        <th scope="row">
+                            <%= data[i].id %>
+                        </th>
+                        <td><img src="img/<%= data[i].profilePic %>" alt="Supervisor" width="150px" height="150px" /></td>
+                        <td>
+                            <%= data[i].email%>
+                        </td>
+                        <td>
+                            <%= data[i].name %>
+                        </td>
+                        <td>
+                            <form name="regForm" action="/supervisors/delete" method="post">
+                                <input data-confirm="Are you sure?" type="hidden" value="<%= data[i].id %>" id="id"
+                                    name="id">
+                                <input class="btn btn-primary" type="submit" value="Delete">
+                            </form>
+                        </td>
+                        <td>
+                            <form name="regForm" action="/supervisors/updateSupervisor" method="get">
+                                <input type="hidden" value="<%= data[i].id %>" id="id" name="id">
+                                <input class="btn btn-primary" type="submit" value="Update">
+                            </form>
+                        </td>
+                    </tr>
+                    <% } %>
+            </tbody>
+        </table>
+        <div class="clearfix">
+            <div class="hint-text">
+                Showing <b>
+                    <%= data.length%>
+                </b> out of
+                <b>
+                    <%= supervisorCount%>
+                </b> Movies
+            </div>
+            <div>
+                <nav aria-label="...">
+                    <ul class="pagination">
+                        <li class="page-item <%=(page==1)?`disabled`:``%>">
+                            <a class="page-link" href="/supervisors?page=<%=(page==1)?`1`:`${page-1}`%>"
+                                tabindex="-1">Previous</a>
+                        </li>
+                        <% for(let pageCount=1; pageCount<=totalPages; pageCount++){ %>
+                            <%if(pageCount==page) {%>
+                                <li class="page-item active">
+                                    <a class="page-link" href="#">
+                                        <%= pageCount%><span class="sr-only">(current)</span>
+                                    </a>
+                                </li>
+                                <%}else{%>
+                                    <li class="page-item"><a class="page-link" href="/supervisors?page=<%=pageCount%>">
+                                            <%= pageCount%>
+                                        </a></li>
+                                    <%} }%>
+                                        <li class="page-item <%=(page==totalPages)?`disabled`:``%>">
+                                            <a class="page-link"
+                                                href="/supervisors?page=<%=(page==totalPages)?`totalPages`:`${Number(page)+1}`%>">Next</a>
+                                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Get the elements with class="column"
+        var elements = document.getElementsByClassName("col-md-3");
+        var Card = document.getElementById("Card")
+        var List = document.getElementById("List")
+        // Declare a loop variable
+        var i;
+
+        // List View
+        function listView() {
+            List.style.display = "block";
+            Card.style.display = "none";
+        }
+
+        // Grid View
+        function gridView() {
+            List.style.display = "none";
+            Card.style.display = "flex";
+        }
+
+        /* Optional: Add active class to the current button (highlight it) */
+        var container = document.getElementById("btnContainer");
+        var btns = container.getElementsByClassName("btn");
+        for (var i = 0; i < btns.length; i++) {
+            btns[i].addEventListener("click", function () {
+                var current = document.getElementsByClassName("active");
+                current[0].className = current[0].className.replace(" active", "");
+                this.className += " active";
+            });
+        }
+    </script>
