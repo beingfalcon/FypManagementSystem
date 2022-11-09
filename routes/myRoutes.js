@@ -7,6 +7,7 @@ const fs = require("fs");
 const bodyparser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
+const mysqlSession = require("express-mysql-session")(session);
 const options = { format: "A4" };
 const homeController = require('../controllers/HomeController');
 const aboutController = require('../controllers/AboutUs');
@@ -24,14 +25,25 @@ mysqlConnection.connect((err) => {
   if (!err) console.log("Connection Established Successfully");
   else console.log("Connection Failed!" + JSON.stringify(err, undefined, 2));
 });
-
+var sessionStore = new mysqlSession({
+  expiration: 60 * 5 * 1000,
+  createDatabaseTable: true,
+  schema: {
+    tableName: 'sessiontble',
+    columnNames: {
+      session_id: 'session_id',
+      expires: 'expires',
+      data: 'data'
+    }
+  }
+},mysqlConnection)
 router.use(session({
   name: 'suid',
   secret: 'secret',
   resave: false,
-  saveUninitialized: false,
+  store:sessionStore,
+  saveUninitialized: true,
   cookie: {
-    maxAge: 60*60*1000,
     sameSite: true
   }
 }));
@@ -53,7 +65,7 @@ function redirectHome(req, res, next) {
   }
 }
 const redirectInvalidLogin = (req, res, next) => {
-  if (req.session.role === "user") {
+  if (req.session.role === "user" || typeof req.session.role === 'undefined') {
     res.redirect('/users')
   }
   else {
@@ -65,7 +77,7 @@ router.get('/users/login', redirectHome, function (req, res) {
 });
 
 
-router.post('/users/login',redirectHome, function (req, res) {
+router.post('/users/login', redirectHome, function (req, res) {
 
   // create Request object
 
@@ -103,7 +115,7 @@ router.get('/users/logout', redirectLogin, function (req, res) {
     }
   });
 })
-router.get('/', function(req,res){
+router.get('/', function (req, res) {
   res.redirect("/users")
 });
 
@@ -143,8 +155,8 @@ router.get('/users', redirectLogin, function (req, res) {
 
       mysqlConnection.query(selectQuery, (err, users, fields) => {
         if (!err) {
-          let user = req.query.loggedinUser;
-          let role=req.session.role;
+          let user = (req.query.loggedinUser)?req.query.loggedinUser:req.session.username;
+          let role = req.session.role;
           console.log(users)
           res.render("pages/users", {
             data: users,
