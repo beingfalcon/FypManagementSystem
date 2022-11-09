@@ -10,20 +10,22 @@
             <a href="/users/logout" class="btn btn-primary">Logout User</a>
             <%}%>
                 <% } %>
-                    <a href="/users/registerUser" class="btn btn-primary">Register User</a>
-                    <br>
-                    <br>
-                    <form name="searchForm" action="/users" method="get">
-                        <div class="input-group">
-                            <div class="form-outline">
-                                <input type="search" id="search" class="form-control" name="search"
-                                    placeholder="Search by Name" />
-                            </div>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-search"></i>
-                            </button>
-                        </div>
-                    </form>
+                    <% if (role=="admin" ){ %>
+                        <a href="/users/registerUser" class="btn btn-primary">Register User</a>
+                        <% } %>
+                            <br>
+                            <br>
+                            <form name="searchForm" action="/users" method="get">
+                                <div class="input-group">
+                                    <div class="form-outline">
+                                        <input type="search" id="search" class="form-control" name="search"
+                                            placeholder="Search by Name" />
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </form>
 </div>
 <div class="shell">
     <div class="container">
@@ -43,7 +45,15 @@
                                 </span>
                             </div>
                             <div class="title-product">
-                                <h3>Age: <%= data[i].birthday %>
+                                <h3>DOB: <%= data[i].birthday %>
+                                </h3>
+                            </div>
+                            <div class="title-product">
+                                <h3>Role: <%= data[i].role %>
+                                </h3>
+                            </div>
+                            <div class="title-product">
+                                <h3>ID: <%= data[i].id %>
                                 </h3>
                             </div>
                             <div class="description-prod">
@@ -51,15 +61,17 @@
                                     <%= data[i].email%>
                                 </p>
                             </div>
-                            <form name="regForm" action="/users/delete" method="post">
-                                <input data-confirm="Are you sure?" type="hidden" value="<%= data[i].id %>" id="id"
-                                    name="id">
-                                <input class="btn btn-primary" type="submit" value="Delete">
-                            </form>
-                            <form name="regForm" action="/users/updateUser" method="get">
-                                <input type="hidden" value="<%= data[i].id %>" id="id" name="id">
-                                <input class="btn btn-primary" type="submit" value="Update">
-                            </form>
+                            <% if(role=="admin" ) {%>
+                                <form name="regForm" action="/users/delete" method="post">
+                                    <input data-confirm="Are you sure?" type="hidden" value="<%= data[i].id %>" id="id"
+                                        name="id">
+                                    <input class="btn btn-primary" type="submit" value="Delete">
+                                </form>
+                                <form name="regForm" action="/users/updateUser" method="get">
+                                    <input type="hidden" value="<%= data[i].id %>" id="id" name="id">
+                                    <input class="btn btn-primary" type="submit" value="Update">
+                                </form>
+                                <% } %>
                         </div>
                     </div>
                 </div>
@@ -72,6 +84,8 @@
                     <th scope="col">Picture</th>
                     <th scope="col">Email</th>
                     <th scope="col">Name</th>
+                    <th scope="col">Role</th>
+                    <th scope="col">ID</th>
                 </tr>
             </thead>
             <tbody>
@@ -89,18 +103,26 @@
                                 <%= data[i].lname %>
                         </td>
                         <td>
-                            <form name="regForm" action="/users/delete" method="post">
-                                <input data-confirm="Are you sure?" type="hidden" value="<%= data[i].id %>" id="id"
-                                    name="id">
-                                <input class="btn btn-primary" type="submit" value="Delete">
-                            </form>
+                            <%= data[i].role %>
                         </td>
                         <td>
-                            <form name="regForm" action="/users/updateUser" method="get">
-                                <input type="hidden" value="<%= data[i].id %>" id="id" name="id">
-                                <input class="btn btn-primary" type="submit" value="Update">
-                            </form>
+                            <%= data[i].id %>
                         </td>
+                        <% if(role=="admin" ) {%>
+                            <td>
+                                <form name="regForm" action="/users/delete" method="post">
+                                    <input data-confirm="Are you sure?" type="hidden" value="<%= data[i].id %>" id="id"
+                                        name="id">
+                                    <input class="btn btn-primary" type="submit" value="Delete">
+                                </form>
+                            </td>
+                            <td>
+                                <form name="regForm" action="/users/updateUser" method="get">
+                                    <input type="hidden" value="<%= data[i].id %>" id="id" name="id">
+                                    <input class="btn btn-primary" type="submit" value="Update">
+                                </form>
+                            </td>
+                            <% } %>
                     </tr>
                     <% } %>
             </tbody>

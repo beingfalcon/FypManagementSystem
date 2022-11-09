@@ -1,6 +1,7 @@
 const express = require('express')
 const router = express.Router()
 var mysql = require("mysql");
+const util = require("util");
 const pdf = require("html-pdf");
 const fs = require("fs");
 const bodyparser = require("body-parser");
@@ -34,10 +35,11 @@ router.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    maxAge: 60 * 1000,
+    maxAge: 60*60*1000,
     sameSite: true
   }
 }));
+
 const redirectLogin = (req, res, next) => {
   if (!req.session.username) {
     res.redirect('/users/login');
@@ -46,7 +48,7 @@ const redirectLogin = (req, res, next) => {
     next();
   }
 }
-function redirectHome (req, res, next){
+function redirectHome(req, res, next) {
   if (typeof req.session.username === 'undefined') {
     next();
   }
@@ -54,12 +56,20 @@ function redirectHome (req, res, next){
     res.redirect('/users');
   }
 }
-router.get('/users/login',redirectHome, function (req, res) {
+const redirectInvalidLogin = (req, res, next) => {
+  if (req.session.role === "user") {
+    res.redirect('/users')
+  }
+  else {
+    next();
+  }
+}
+router.get('/users/login', redirectHome, function (req, res) {
   res.render('pages/Login')
 });
 
 
-router.post('/users/login', function (req, res) {
+router.post('/users/login',redirectHome, function (req, res) {
 
   // create Request object
 
@@ -75,8 +85,9 @@ router.post('/users/login', function (req, res) {
         // Authenticate the user
         req.session.loggedin = true;
         req.session.username = username;
+        req.session.role = results[0].role;
         // Redirect to home page
-        res.redirect('/users?loggedinUser='+req.session.username);
+        res.redirect('/users?loggedinUser=' + req.session.username);
       } else {
         res.redirect('/users/login?error=\'Incorrect Username and/or Password!\'');
       }
@@ -96,7 +107,57 @@ router.get('/users/logout', redirectLogin, function (req, res) {
     }
   });
 })
-router.get('/users', redirectLogin, usersController.get);
+router.get('/users', redirectLogin, function (req, res) {
+  {
+    console.log(req.query.search)
+    let userQuery = ""
+    if (req.query.search === undefined) {
+      userQuery = `SELECT COUNT(*) FROM userreg`;
+    }
+    else {
+      let fname = req.query.search;
+      userQuery = `SELECT COUNT(*) FROM userreg where fname LIKE '%${fname}%'`;
+    }
+    mysqlConnection.query(userQuery, (err, totalUsers, fields) => {
+      let userCount = totalUsers[0]["COUNT(*)"];
+      let page = req.query.page ? req.query.page : 1;
+      let usersPerPage = req.query.usersPerPage ? req.query.usersPerPage : 2;
+      let startLimit = (page - 1) * usersPerPage;
+      let totalPages = Math.ceil(userCount / usersPerPage);
+
+      //res.send(`${movieCount}`);
+      let selectQuery = ""
+      console.log(req.query.search)
+      if (req.query.search === undefined) {
+        selectQuery = `SELECT * FROM userreg 
+        LIMIT ${startLimit}, ${usersPerPage}`;
+      }
+      else {
+        let fname = req.query.search;
+        console.log(fname)
+        selectQuery = `SELECT * FROM userreg where fname LIKE '%${fname}%' LIMIT ${startLimit}, ${usersPerPage}`;
+      }
+
+      mysqlConnection.query(selectQuery, (err, users, fields) => {
+        if (!err) {
+          let user = req.query.loggedinUser;
+          let role=req.session.role;
+          console.log(users)
+          res.render("pages/users", {
+            data: users,
+            userCount,
+            page,
+            totalPages,
+            usersPerPage,
+            user: user,
+            role: role
+          });
+        }
+        else console.log(err);
+      });
+    });
+  }
+});
 router.get('/supervisors', function (req, res) {
   console.log(req.query.search)
   let userQuery = ""
@@ -160,7 +221,7 @@ router.get('/', function (req, res) {
     myName: myName
   });
 });
-router.get('/users/insertData', function (req, res) {
+router.get('/users/insertData', redirectInvalidLogin, function (req, res) {
   res.render('pages/insertUser')
 })
 router.get('/users/registerUser', function (req, res) {
@@ -170,10 +231,10 @@ router.get('/supervisors/registerSupervisor', function (req, res) {
   res.render('pages/registerSupervisor')
 })
 
-router.get('/users/updateUser', function (req, res) {
+router.get('/users/updateUser', redirectInvalidLogin, function (req, res) {
 
   // create Request object
-
+  console.log(req.session.role)
   var id = req.query.id
   mysqlConnection.query(`select * from userReg WHERE  id= ${id}`, function (err, recordset) {
 
@@ -331,7 +392,7 @@ router.get('/api/users/printUsers', function (req, res) {
     });
   }
 })
-router.post('/users/delete', function (req, res) {
+router.post('/users/delete', redirectInvalidLogin, function (req, res) {
   var id = req.body.id
   console.log(id);
   var Query = `DELETE FROM userReg WHERE id=${id}`
@@ -471,7 +532,7 @@ router.post('/api/users/registerUser', function (req, res) {
 
   });
 })
-router.post('/users/updateUser', function (req, res) {
+router.post('/users/updateUser', redirectInvalidLogin, function (req, res) {
 
   // create Request object
   var id = req.body.id
@@ -494,7 +555,7 @@ router.post('/users/updateUser', function (req, res) {
       console.log(data)
       if (data[0].password == oldpassword) {
         var Query = `UPDATE userReg SET fname = '${fname}', lname='${lname}', birthday='${birthday}', username='${username}', email='${email}', phone='${phone}', country='${country}',password='${password}', profilePic='${profilePic}' WHERE id=${id}`
-        request.query(Query, function (err, recordset) {
+        mysqlConnection.query(Query, function (err, recordset) {
 
           if (err) {
             console.log(err);
@@ -624,7 +685,7 @@ router.post('/api/users/updateUser', function (req, res) {
   })
 
 });
-router.post('/users/insertData', function (req, res) {
+router.post('/users/insertData', redirectInvalidLogin, function (req, res) {
 
   // create Request object
 
