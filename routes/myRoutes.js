@@ -24,11 +24,7 @@ mysqlConnection.connect((err) => {
   if (!err) console.log("Connection Established Successfully");
   else console.log("Connection Failed!" + JSON.stringify(err, undefined, 2));
 });
-router.get('/', homeController.get);
 
-router.get('/home', homeController.get);
-router.get('/aboutus', aboutController.get);
-router.get('/contactus', contactController.get);
 router.use(session({
   name: 'suid',
   secret: 'secret',
@@ -107,6 +103,13 @@ router.get('/users/logout', redirectLogin, function (req, res) {
     }
   });
 })
+router.get('/', function(req,res){
+  res.redirect("/users")
+});
+
+router.get('/home', homeController.get);
+router.get('/aboutus', aboutController.get);
+router.get('/contactus', contactController.get);
 router.get('/users', redirectLogin, function (req, res) {
   {
     console.log(req.query.search)
