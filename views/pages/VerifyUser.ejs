@@ -1,0 +1,17 @@
+<form name="userVer" action="/users/login/verify" method="post">
+    <!-- Email input -->
+    <div class="form-outline mb-4">
+    <label class="form-label" for="username">Username</label>
+    <input type="text" id="username" name="username" value="<%= username %> " class="form-control" required/>
+      
+    </div>
+  
+    <!-- Password input -->
+    <div class="form-outline mb-4">
+    <label class="form-label" for="code">Code</label>
+    <input type="code" id="code" name="code" class="form-control" required/>
+    
+    </div>
+    <!-- Submit button -->
+    <input class="btn btn-primary" type="submit" value="Submit">
+  </form>

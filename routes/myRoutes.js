@@ -7,12 +7,15 @@ const fs = require("fs");
 const bodyparser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
+const nodemailer = require("nodemailer");
+const { body, validator } = require("express-validator");
 const mysqlSession = require("express-mysql-session")(session);
 const options = { format: "A4" };
 const homeController = require('../controllers/HomeController');
 const aboutController = require('../controllers/AboutUs');
 const contactController = require('../controllers/ContactUs');
 const usersController = require('../controllers/usersController');
+const { render } = require('ejs');
 var mysqlConnection = mysql.createConnection({
   host: "localhost",
   username: "root",
@@ -36,18 +39,17 @@ var sessionStore = new mysqlSession({
       data: 'data'
     }
   }
-},mysqlConnection)
+}, mysqlConnection)
 router.use(session({
   name: 'suid',
   secret: 'secret',
   resave: false,
-  store:sessionStore,
+  store: sessionStore,
   saveUninitialized: true,
   cookie: {
     sameSite: true
   }
 }));
-
 const redirectLogin = (req, res, next) => {
   if (!req.session.username) {
     res.redirect('/users/login');
@@ -72,11 +74,52 @@ const redirectInvalidLogin = (req, res, next) => {
     next();
   }
 }
+const redirectUnVerifiedUser = (req, res, next) => {
+  if (!req.session.isVerified) {
+    res.redirect("/users/login/verify");
+  }
+  else {
+    next();
+  }
+}
+const redirectVerifiedUser = (req, res, next) => {
+  if (req.session.isVerified) {
+    redirect("/");
+  }
+  else {
+    next();
+  }
+}
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  host: "smtp.gmail.com",
+
+  auth: {
+    user: "rameezahmednode@gmail.com",
+    pass: "rlqzgontwfwfxsuw"
+  }
+});
+const mailOptions = {
+  from: 'rameezahmednode@gmail.com',
+  to: "rameez98ahmed@gmail.com",
+  subject: "Hello Message",
+  text: "This is my First Email using NodeJS",
+  html: "<b>This is my First Email using NodeJS</b>",
+};
+router.get("/users/sendMail", function (req, res) {
+  transporter.sendMail(mailOptions, function (error, info) {
+    if (error) {
+      console.log(error);
+    }
+    else {
+      console.log("Email Sent: " + info.response);
+      res.redirect("/users");
+    }
+  });
+})
 router.get('/users/login', redirectHome, function (req, res) {
   res.render('pages/Login')
 });
-
-
 router.post('/users/login', redirectHome, function (req, res) {
 
   // create Request object
@@ -94,6 +137,7 @@ router.post('/users/login', redirectHome, function (req, res) {
         req.session.loggedin = true;
         req.session.username = username;
         req.session.role = results[0].role;
+        req.session.isVerified = results[0].isVerified;
         // Redirect to home page
         res.redirect('/users?loggedinUser=' + req.session.username);
       } else {
@@ -105,6 +149,97 @@ router.post('/users/login', redirectHome, function (req, res) {
     res.send('Please enter Username and Password!');
     res.end();
   }
+});
+
+router.get('/users/forgetPassword', redirectHome, function (req, res) {
+  res.render('pages/forgetPassword')
+})
+router.post('/users/forgetPassword', redirectHome, function (req, res) {
+  var username = req.body.username
+  var email = req.body.email
+  let code = 0;
+  mysqlConnection.query(`select (verificationCode) from userreg where email='${email}'`, function (err, result) {
+    if (!err) {
+      code = result[0].verificationCode
+      const mailOptionsReset = {
+        from: "rameezahmednode@gmail.com",
+        to: email,
+        subject: `Password Reset Request for ${username}`,
+        text: `Your Password Reset Code is ${code}.`,
+        html: `<a href="http://localhost:3000/users/resetPassword?code=${code}">Reset Password</a><br><p>Your Password Reset Code is ${code}.</p>`,
+      };
+      transporter.sendMail(mailOptionsReset, function (error, info) {
+        if (error) {
+          console.log(error);
+        }
+        else {
+          console.log(`Email.sent to ${email}: ${info.response}`);
+          res.redirect("/users/login");
+        }
+      })
+    }
+    else {
+      console.log(err)
+    }
+  })
+
+
+})
+router.get('/users/resetPassword',redirectHome,function(req,res){
+  res.render('pages/resetPassword');
+})
+router.post('/users/resetPassword',redirectHome,function(req,res){
+  var username = req.body.username
+  var email = req.body.email
+  var password=req.body.password
+  var code=req.body.code
+  mysqlConnection.query(`select count(*) from userreg where username='${username}' and email='${email}' and verificationCode=${code}`,function(err,result,fields){
+    let count=result[0]['count(*)']
+    if(count==1){
+      mysqlConnection.query(`Update userreg SET password='${password}' where username='${username}' and email='${email}'`, function (err, result){
+        if(!err)
+        {
+          res.redirect('/users')
+        }
+        else{
+          console.log(err)
+        }
+      })
+    }
+  })
+})
+router.get('/sendReport',function(req,res){
+  res.render('pages/sendReport');
+})
+router.post('/sendReport',function(req,res){
+  let email=req.body.email;
+  const mailOptionsVerification = {
+    from: "rameezahmednode@gmail.com",
+    to: email,
+    subject: "Reports from Node application",
+    text: `Reports from Node application`,
+    html: ({path: 'http://localhost:3000/aboutus'}),
+    attachments:[{
+      filename:'allusers.pdf',
+      path: 'E:\\Fast CFD 18\\8. Fall 2022\\Web Programming\\ClassActivity01\\uploads\\allUsers.pdf'
+    }]
+  };
+  transporter.sendMail(mailOptionsVerification, function (error, info) {
+    if (error) {
+      console.log(error);
+    }
+    else {
+      console.log(`Email.sent to ${email}: ${info.response}`);
+      res.redirect("/users/login");
+    }
+  })
+})
+
+router.get('/users/login/verify', [redirectLogin, redirectVerifiedUser], function (req, res) {
+  let username = req.session.username
+  res.render("pages/verifyuser", {
+    username: username,
+  })
 })
 router.get('/users/logout', redirectLogin, function (req, res) {
   req.session.destroy(err => {
@@ -122,7 +257,7 @@ router.get('/', function (req, res) {
 router.get('/home', homeController.get);
 router.get('/aboutus', aboutController.get);
 router.get('/contactus', contactController.get);
-router.get('/users', redirectLogin, function (req, res) {
+router.get('/users', [redirectLogin, redirectUnVerifiedUser], function (req, res) {
   {
     console.log(req.query.search)
     let userQuery = ""
@@ -155,7 +290,7 @@ router.get('/users', redirectLogin, function (req, res) {
 
       mysqlConnection.query(selectQuery, (err, users, fields) => {
         if (!err) {
-          let user = (req.query.loggedinUser)?req.query.loggedinUser:req.session.username;
+          let user = (req.query.loggedinUser) ? req.query.loggedinUser : req.session.username;
           let role = req.session.role;
           console.log(users)
           res.render("pages/users", {
@@ -460,6 +595,40 @@ router.post('/api/users/delete', function (req, res) {
 
   });
 })
+function generateCode() {
+  return 621267;
+}
+router.post('/users/login/verify', [redirectLogin, redirectVerifiedUser], function (req, res) {
+  let code = req.body.code;
+  let username = req.session.username;
+
+  let Query = `select (verificationCode) from userreg where username = '${username}'`;
+  mysqlConnection.query(Query, function (err, data) {
+    if (err) {
+      console.log(err)
+    }
+    else {
+      if (data[0].verificationCode == code) {
+        mysqlConnection.query(`Update userreg SET isVerified=1 where username='${username}'`, function (err, result) {
+          if (!err) {
+            res.redirect("/users/logout")
+          }
+          else {
+            console.log(err);
+            res.redirect("/users/login/verify");
+          }
+        })
+      }
+      else {
+        res.render("pages/VerifyUser", {
+          username,
+          message: "Invalid Verification Code"
+        })
+      }
+    }
+  })
+
+})
 router.post('/users/registerUser', function (req, res) {
 
   // create Request object
@@ -472,7 +641,8 @@ router.post('/users/registerUser', function (req, res) {
   var phone = req.body.phone
   var country = req.body.country
   var password = req.body.password
-  var Query = `INSERT INTO userReg (fname,lname,birthday,username,email,phone,country,password) VALUES('${fname}','${lname}','${birthday}','${username}','${email}','${phone}','${country}','${password}')`
+  let code = generateCode();
+  var Query = `INSERT INTO userReg (fname,lname,birthday,username,email,phone,country,password,verificationCode) VALUES('${fname}','${lname}','${birthday}','${username}','${email}','${phone}','${country}','${password}',${code})`
   mysqlConnection.query(Query, function (err, recordset) {
 
     if (err) {
@@ -481,7 +651,32 @@ router.post('/users/registerUser', function (req, res) {
 
     // send records as a response
     else {
-      res.redirect('/users');
+      if (body(email).isEmail()) {
+        res.render("pages/VerifyUser", {
+          username, code
+        }, function (err, html) {
+          const mailOptionsVerification = {
+            from: "rameezahmednode@gmail.com",
+            to: email,
+            subject: "Your verification Code for node js application",
+            text: `Your verification code is ${code}.`,
+            html: `<a href="http://localhost:3000/users/login/verify?code=${code}">Verify User</a><br><p>Your Verification Code is ${code}.</p>`,
+          };
+          transporter.sendMail(mailOptionsVerification, function (error, info) {
+            if (error) {
+              console.log(error);
+            }
+            else {
+              console.log(`Email.sent to ${email}: ${info.response}`);
+              res.redirect("/users/login");
+            }
+          })
+        })
+        res.redirect('/users/login');
+      }
+      else {
+        res.redirect("/users/login");
+      }
     }
 
   });
