@@ -1,0 +1,48 @@
+<div class="col-md-3">
+    <div class="wsk-cp-product">
+        <div class="wsk-cp-img">
+            <img src="/img/<%= user[0].profilePic %>" alt="User" class="img-responsive" />
+        </div>
+        <div class="wsk-cp-text">
+            <div class="category">
+                <span>
+                    <%= user[0].fname %>
+                </span>
+            </div>
+            <div class="title-product">
+                <h3>DOB: <%= user[0].birthday %>
+                </h3>
+            </div>
+            <div class="title-product">
+                <h3>Role: <%= user[0].role %>
+                </h3>
+            </div>
+            <div class="title-product">
+                <h3>ID: <%= user[0].id %>
+                </h3>
+            </div>
+            <div class="description-prod">
+                <p>
+                    <%= user[0].email%>
+                </p>
+            </div>
+            <% if(role=="admin" ) {%>
+                <form name="regForm" action="/users/delete" method="post">
+                    <input data-confirm="Are you sure?" type="hidden" value="<%= user[0].id %>" id="id"
+                        name="id">
+                    <input class="btn btn-primary" type="submit" value="Delete">
+                </form>
+                <form name="regForm" action="/users/updateUser" method="get">
+                    <input type="hidden" value="<%= user[0].id %>" id="id" name="id">
+                    <input class="btn btn-primary" type="submit" value="Update">
+                </form>
+            <% } %>
+        </div>
+    </div>
+</div>
+<form name="commentFrm" action="/user/comment" method="post">
+    <label for="comment">Enter your comment here</label>
+    <input type="text" id="comment" name="comment">
+    <input type="hidden" value="<%= username %>" id="username" name="username">
+    <input type="button" value="Post">
+</form>

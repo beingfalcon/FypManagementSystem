@@ -24,6 +24,7 @@ var mysqlConnection = mysql.createConnection({
   port: "3306",
   multipleStatements: true,
 });
+
 mysqlConnection.connect((err) => {
   if (!err) console.log("Connection Established Successfully");
   else console.log("Connection Failed!" + JSON.stringify(err, undefined, 2));
@@ -50,6 +51,88 @@ router.use(session({
     sameSite: true
   }
 }));
+const Sequelize = require("sequelize");
+const sequelize = new Sequelize(
+  'mysql',
+  'root',
+  '',
+  {
+    host: 'localhost',
+    dialect: 'mysql'
+  }
+);
+router.get('/sequelize', function (req, res) {
+  sequelize.authenticate().then(() => {
+    console.log('Connection has been established successfully.');
+  }).catch((error) => {
+    console.error('Unable to connect to the database: ', error);
+  });
+  sequelize.define("userregs", {
+    id: {
+        type: Sequelize.INTEGER(11),
+        allowNull: false,
+        autoIncrement: true,
+        primaryKey: true,
+    },
+    fname: {
+        type: Sequelize.STRING(30),
+        allowNull: false,
+    },
+    lname: {
+        type: Sequelize.STRING(30),
+        allowNull: false,
+    },
+    birthday: {
+        type: Sequelize.STRING(40),
+        allowNull: true,
+    },
+    username: {
+        type: Sequelize.STRING(30),
+        allowNull: false,
+        unique: true,
+    },
+    email: {
+        type: Sequelize.STRING(50),
+        allowNull: false,
+        unique: true,
+    },
+    phone: {
+        type: Sequelize.STRING(14),
+        allowNull: true,
+    },
+    couontry: {
+        type: Sequelize.STRING(20),
+        allowNull: true,
+    },
+    password: {
+        type: Sequelize.STRING(20),
+        allowNull: false,
+    },
+    profilePic: {
+        type: Sequelize.STRING(50),
+        allowNull: true,
+    },
+    role: {
+        type: Sequelize.STRING(30),
+        allowNull: true,
+    },
+    isVerified: {
+        type: Sequelize.BOOLEAN,
+        allowNull: true,
+    },
+    verificationCode: {
+        type: Sequelize.INTEGER(11),
+        allowNull: false,
+    }
+});
+sequelize.sync().then(() => {
+    console.log('userregs table created successfully!');
+ }).catch((error) => {
+    console.error('Unable to create table : ', error);
+ });
+ 
+})
+
 const redirectLogin = (req, res, next) => {
   if (!req.session.username) {
     res.redirect('/users/login');
@@ -128,7 +211,7 @@ router.post('/users/login', redirectHome, function (req, res) {
   var password = req.body.password
   if (username && password) {
     // Execute SQL query that'll select the account from the database based on the specified username and password
-    mysqlConnection.query(`SELECT * FROM userreg WHERE username = '${username}' AND password = '${password}'`, function (error, results, fields) {
+    mysqlConnection.query(`SELECT * FROM userregs WHERE username = '${username}' AND password = '${password}'`, function (error, results, fields) {
       // If there is an issue with the query, output the error
       if (error) throw error;
       // If the account exists
@@ -158,7 +241,7 @@ router.post('/users/forgetPassword', redirectHome, function (req, res) {
   var username = req.body.username
   var email = req.body.email
   let code = 0;
-  mysqlConnection.query(`select (verificationCode) from userreg where email='${email}'`, function (err, result) {
+  mysqlConnection.query(`select (verificationCode) from userregs where email='${email}'`, function (err, result) {
     if (!err) {
       code = result[0].verificationCode
       const mailOptionsReset = {
@@ -185,42 +268,41 @@ router.post('/users/forgetPassword', redirectHome, function (req, res) {
 
 
 })
-router.get('/users/resetPassword',redirectHome,function(req,res){
+router.get('/users/resetPassword', redirectHome, function (req, res) {
   res.render('pages/resetPassword');
 })
-router.post('/users/resetPassword',redirectHome,function(req,res){
+router.post('/users/resetPassword', redirectHome, function (req, res) {
   var username = req.body.username
   var email = req.body.email
-  var password=req.body.password
-  var code=req.body.code
-  mysqlConnection.query(`select count(*) from userreg where username='${username}' and email='${email}' and verificationCode=${code}`,function(err,result,fields){
-    let count=result[0]['count(*)']
-    if(count==1){
-      mysqlConnection.query(`Update userreg SET password='${password}' where username='${username}' and email='${email}'`, function (err, result){
-        if(!err)
-        {
+  var password = req.body.password
+  var code = req.body.code
+  mysqlConnection.query(`select count(*) from userregs where username='${username}' and email='${email}' and verificationCode=${code}`, function (err, result, fields) {
+    let count = result[0]['count(*)']
+    if (count == 1) {
+      mysqlConnection.query(`Update userregs SET password='${password}' where username='${username}' and email='${email}'`, function (err, result) {
+        if (!err) {
           res.redirect('/users')
         }
-        else{
+        else {
           console.log(err)
         }
       })
     }
   })
 })
-router.get('/sendReport',function(req,res){
+router.get('/sendReport', function (req, res) {
   res.render('pages/sendReport');
 })
-router.post('/sendReport',function(req,res){
-  let email=req.body.email;
+router.post('/sendReport', function (req, res) {
+  let email = req.body.email;
   const mailOptionsVerification = {
     from: "rameezahmednode@gmail.com",
     to: email,
     subject: "Reports from Node application",
     text: `Reports from Node application`,
-    html: ({path: 'http://localhost:3000/aboutus'}),
-    attachments:[{
-      filename:'allusers.pdf',
+    html: ({ path: 'http://localhost:3000/aboutus' }),
+    attachments: [{
+      filename: 'allusers.pdf',
       path: 'E:\\Fast CFD 18\\8. Fall 2022\\Web Programming\\ClassActivity01\\uploads\\allUsers.pdf'
     }]
   };
@@ -257,16 +339,18 @@ router.get('/', function (req, res) {
 router.get('/home', homeController.get);
 router.get('/aboutus', aboutController.get);
 router.get('/contactus', contactController.get);
+
+
 router.get('/users', [redirectLogin, redirectUnVerifiedUser], function (req, res) {
   {
     console.log(req.query.search)
     let userQuery = ""
     if (req.query.search === undefined) {
-      userQuery = `SELECT COUNT(*) FROM userreg`;
+      userQuery = `SELECT COUNT(*) FROM userregs`;
     }
     else {
       let fname = req.query.search;
-      userQuery = `SELECT COUNT(*) FROM userreg where fname LIKE '%${fname}%'`;
+      userQuery = `SELECT COUNT(*) FROM userregs where fname LIKE '%${fname}%'`;
     }
     mysqlConnection.query(userQuery, (err, totalUsers, fields) => {
       let userCount = totalUsers[0]["COUNT(*)"];
@@ -279,13 +363,13 @@ router.get('/users', [redirectLogin, redirectUnVerifiedUser], function (req, res
       let selectQuery = ""
       console.log(req.query.search)
       if (req.query.search === undefined) {
-        selectQuery = `SELECT * FROM userreg 
+        selectQuery = `SELECT * FROM userregs 
         LIMIT ${startLimit}, ${usersPerPage}`;
       }
       else {
         let fname = req.query.search;
         console.log(fname)
-        selectQuery = `SELECT * FROM userreg where fname LIKE '%${fname}%' LIMIT ${startLimit}, ${usersPerPage}`;
+        selectQuery = `SELECT * FROM userregs where fname LIKE '%${fname}%' LIMIT ${startLimit}, ${usersPerPage}`;
       }
 
       mysqlConnection.query(selectQuery, (err, users, fields) => {
@@ -308,6 +392,23 @@ router.get('/users', [redirectLogin, redirectUnVerifiedUser], function (req, res
     });
   }
 });
+router.get('/user', [redirectLogin], function (req, res) {
+  let id = req.query.id;
+  let Query = `select * from userregs where id=${id}`;
+  mysqlConnection.query(Query, (err, user, fields) => {
+    let role = req.session.role
+    let username = req.session.username
+    if (!err) {
+      res.render('pages/user', {
+        user: user,
+        role: role,
+        username: username,
+      })
+    }
+    else console.log(err)
+  })
+})
+
 router.get('/supervisors', function (req, res) {
   console.log(req.query.search)
   let userQuery = ""
@@ -386,7 +487,7 @@ router.get('/users/updateUser', redirectInvalidLogin, function (req, res) {
   // create Request object
   console.log(req.session.role)
   var id = req.query.id
-  mysqlConnection.query(`select * from userReg WHERE  id= ${id}`, function (err, recordset) {
+  mysqlConnection.query(`select * from userregs WHERE  id= ${id}`, function (err, recordset) {
 
     if (err) {
       console.log(err);
@@ -432,14 +533,14 @@ router.get('/supervisors/updateSupervisor', function (req, res) {
 })
 router.get('/users/printUsers', function (req, res) {
   {
-    // request.query("SELECT COUNT(*) from userReg",(err,totalSupervisors,fields)=>{
+    // request.query("SELECT COUNT(*) from userregs",(err,totalSupervisors,fields)=>{
     //   console.log(totalSupervisors);
     //   let userCount=totalSupervisors[1][""];
     //   let page=req.query.page ? req.query.page :1;
     //   var perPageUsers=req.query.usersPerPage ? req.query.usersPerPage : 3 ;
     //   let startLimit = (page-1)*usersPerPage;
     //   let totalPages=Math.ceil(userCount/usersPerPage);
-    //   let selectQuery=`SELECT * from userReg limit ${startLimit}, ${perPageUsers}`; 
+    //   let selectQuery=`SELECT * from userregs limit ${startLimit}, ${perPageUsers}`; 
     //   request.query(selectQuery,(err,recordset)=>{
     //     let jsonString=JSON.stringify(recordset)
     //       let JSONdata=JSON.parse(jsonString);
@@ -454,7 +555,7 @@ router.get('/users/printUsers', function (req, res) {
     //   })
     // }) 
     // query to the database and get the records
-    mysqlConnection.query('select * from userReg', function (err, recordset) {
+    mysqlConnection.query('select * from userregs', function (err, recordset) {
 
       if (err) {
         console.log(err);
@@ -486,14 +587,14 @@ router.get('/users/printUsers', function (req, res) {
 })
 router.get('/api/users/printUsers', function (req, res) {
   {
-    // request.query("SELECT COUNT(*) from userReg",(err,totalSupervisors,fields)=>{
+    // request.query("SELECT COUNT(*) from userregs",(err,totalSupervisors,fields)=>{
     //   console.log(totalSupervisors);
     //   let userCount=totalSupervisors[1][""];
     //   let page=req.query.page ? req.query.page :1;
     //   var perPageUsers=req.query.usersPerPage ? req.query.usersPerPage : 3 ;
     //   let startLimit = (page-1)*usersPerPage;
     //   let totalPages=Math.ceil(userCount/usersPerPage);
-    //   let selectQuery=`SELECT * from userReg limit ${startLimit}, ${perPageUsers}`; 
+    //   let selectQuery=`SELECT * from userregs limit ${startLimit}, ${perPageUsers}`; 
     //   request.query(selectQuery,(err,recordset)=>{
     //     let jsonString=JSON.stringify(recordset)
     //       let JSONdata=JSON.parse(jsonString);
@@ -508,7 +609,7 @@ router.get('/api/users/printUsers', function (req, res) {
     //   })
     // }) 
     // query to the database and get the records
-    mysqlConnection.query('select * from userReg', function (err, recordset) {
+    mysqlConnection.query('select * from userregs', function (err, recordset) {
 
       if (err) {
         console.log(err);
@@ -545,7 +646,7 @@ router.get('/api/users/printUsers', function (req, res) {
 router.post('/users/delete', redirectInvalidLogin, function (req, res) {
   var id = req.body.id
   console.log(id);
-  var Query = `DELETE FROM userReg WHERE id=${id}`
+  var Query = `DELETE FROM userregs WHERE id=${id}`
   mysqlConnection.query(Query, function (err, recordset) {
 
     if (err) {
@@ -579,7 +680,7 @@ router.post('/supervisors/delete', function (req, res) {
 router.post('/api/users/delete', function (req, res) {
   var id = req.body.id
   console.log(id);
-  var Query = `DELETE FROM userReg WHERE id=${id}`
+  var Query = `DELETE FROM userregs WHERE id=${id}`
   mysqlConnection.query(Query, function (err, recordset) {
 
     if (err) {
@@ -602,14 +703,14 @@ router.post('/users/login/verify', [redirectLogin, redirectVerifiedUser], functi
   let code = req.body.code;
   let username = req.session.username;
 
-  let Query = `select (verificationCode) from userreg where username = '${username}'`;
+  let Query = `select (verificationCode) from userregs where username = '${username}'`;
   mysqlConnection.query(Query, function (err, data) {
     if (err) {
       console.log(err)
     }
     else {
       if (data[0].verificationCode == code) {
-        mysqlConnection.query(`Update userreg SET isVerified=1 where username='${username}'`, function (err, result) {
+        mysqlConnection.query(`Update userregs SET isVerified=1 where username='${username}'`, function (err, result) {
           if (!err) {
             res.redirect("/users/logout")
           }
@@ -642,7 +743,7 @@ router.post('/users/registerUser', function (req, res) {
   var country = req.body.country
   var password = req.body.password
   let code = generateCode();
-  var Query = `INSERT INTO userReg (fname,lname,birthday,username,email,phone,country,password,verificationCode) VALUES('${fname}','${lname}','${birthday}','${username}','${email}','${phone}','${country}','${password}',${code})`
+  var Query = `INSERT INTO userregs (fname,lname,birthday,username,email,phone,country,password,verificationCode) VALUES('${fname}','${lname}','${birthday}','${username}','${email}','${phone}','${country}','${password}',${code})`
   mysqlConnection.query(Query, function (err, recordset) {
 
     if (err) {
@@ -726,7 +827,7 @@ router.post('/api/users/registerUser', function (req, res) {
 
   // query to the database and insert the records
 
-  var Query = `INSERT INTO userReg (fname,lname,birthday,username,email,phone,country,password,profilePic) VALUES('${fname}','${lname}','${birthday}','${username}','${email}','${phone}','${country}','${password}','${profilePic}')`
+  var Query = `INSERT INTO userregs (fname,lname,birthday,username,email,phone,country,password,profilePic) VALUES('${fname}','${lname}','${birthday}','${username}','${email}','${phone}','${country}','${password}','${profilePic}')`
   mysqlConnection.query(Query, function (err, recordset) {
 
     if (err) {
@@ -756,7 +857,7 @@ router.post('/users/updateUser', redirectInvalidLogin, function (req, res) {
   var password = req.body.password
   var oldpassword = req.body.oldpassword
   var profilePic = req.body.profilePic
-  mysqlConnection.query(`select (password) from userReg where id=${id}`, function (err, recordset) {
+  mysqlConnection.query(`select (password) from userregs where id=${id}`, function (err, recordset) {
     if (err) {
       console.log(err);
     }
@@ -764,7 +865,7 @@ router.post('/users/updateUser', redirectInvalidLogin, function (req, res) {
       data = recordset
       console.log(data)
       if (data[0].password == oldpassword) {
-        var Query = `UPDATE userReg SET fname = '${fname}', lname='${lname}', birthday='${birthday}', username='${username}', email='${email}', phone='${phone}', country='${country}',password='${password}', profilePic='${profilePic}' WHERE id=${id}`
+        var Query = `UPDATE userregs SET fname = '${fname}', lname='${lname}', birthday='${birthday}', username='${username}', email='${email}', phone='${phone}', country='${country}',password='${password}', profilePic='${profilePic}',updatedAt=CURRENT_TIME()  WHERE id=${id}`
         mysqlConnection.query(Query, function (err, recordset) {
 
           if (err) {
@@ -859,7 +960,7 @@ router.post('/api/users/updateUser', function (req, res) {
 
   // query to the database and insert the records
   // (fname,lname,birthday,username,email,phone,country,password)
-  mysqlConnection.query(`select (password) from userReg where id=${id}`, function (err, recordset) {
+  mysqlConnection.query(`select (password) from userregs where id=${id}`, function (err, recordset) {
     if (err) {
       console.log(err);
     }
@@ -869,7 +970,7 @@ router.post('/api/users/updateUser', function (req, res) {
       data = JSONdata.recordset
       console.log(data)
       if (data[0].password == oldpassword) {
-        var Query = `UPDATE userReg SET fname = '${fname}', lname='${lname}', birthday='${birthday}', username='${username}', email='${email}', phone='${phone}', country='${country}',password='${password}' WHERE id=${id}`
+        var Query = `UPDATE userregs SET fname = '${fname}', lname='${lname}', birthday='${birthday}', username='${username}', email='${email}', phone='${phone}', country='${country}',password='${password}' WHERE id=${id}`
         request.query(Query, function (err, recordset) {
 
           if (err) {

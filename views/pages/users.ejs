@@ -71,7 +71,12 @@
                                     <input type="hidden" value="<%= data[i].id %>" id="id" name="id">
                                     <input class="btn btn-primary" type="submit" value="Update">
                                 </form>
-                                <% } %>
+                            <% } %>
+                            <form name="userFrm" action="/user" method="get">
+                                <input type="hidden" value="<%= data[i].id %>" id="id"
+                                    name="id">
+                                <input class="btn btn-primary" type="submit" value="View">
+                            </form>
                         </div>
                     </div>
                 </div>
