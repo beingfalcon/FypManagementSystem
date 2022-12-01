@@ -21,10 +21,13 @@ db.Sequelize = Sequelize;
 db.userComments = require("./userComments")(sequelize, Sequelize);
 db.Users = require("./users")(sequelize, Sequelize);
 db.userReviews = require("./userReview")(sequelize, Sequelize);
+db.commentsReply = require("./commentsReply")(sequelize, Sequelize);
 db.Users.hasMany(db.userReviews,{onDelete:"cascade"})
 db.Users.hasMany(db.userComments,{onDelete: "cascade"})
 db.userComments.belongsTo(db.Users);
+db.userComments.hasMany(db.commentsReply,{onDelete: "cascade"})
 db.userReviews.belongsTo(db.Users);
+db.commentsReply.belongsTo(db.userComments);
 sequelize.sync().then(() => {
     console.log('tables created successfully!');
  }).catch((error) => {

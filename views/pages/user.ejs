@@ -56,7 +56,7 @@ input:checked ~ label:hover ~ label {
                     <h3>User Ratings:
                         <% for(let i=0;i<rating;i++){ %>
                             <span style="color: orange;font-size:x-large; ">&#10038</span>
-                        <% } %>  
+                            <% } %>
                     </h3>
                 </div>
                 <div class="title-product">
@@ -142,6 +142,19 @@ input:checked ~ label:hover ~ label {
                     <div class="card-header">${text[i].username}</div>
                     <div class="card-body text-primary">
                         <p class="card-text">${text[i].comment}</p>
+                        <button onclick="getReplies(${text[i].id})">Show</button>
+                        <button onclick="hideReplies()">Hide</button>
+                        <div id="reply" style="overflow-y: scroll; height:100px;">
+
+                        </div>
+                        <form name="replyFrm" action="/user/addCommentReply?userID=<%=user.id%>" method="post">
+                            <label for="comment">Enter Reply</label>
+                            <br>
+                            <input type="text" id="reply" name="reply" placeholder="Enter your reply...">
+                            <input type="hidden" value="${text[i].id}" id="id" name="id">
+                            <input type="hidden" value="<%= username %>" id="username" name="username">
+                            <input type="submit" value="Post">
+                        </form>
                     </div>
                 </div>`
             }
@@ -175,5 +188,26 @@ input:checked ~ label:hover ~ label {
     }
     function hideRatings() {
         document.getElementById("ratings").innerHTML = "";
+    }
+    
+    function getReplies(id) {
+        const xhttp = new XMLHttpRequest();
+        xhttp.onload = function () {
+            text = JSON.parse(this.responseText);
+            for (let i = 0; i < this.responseText.length; i++) {
+                document.getElementById("reply").innerHTML +=
+                    `<div class="card border-primary mb-3" style="max-width: 18rem;">
+                    <div class="card-header">${text[i].username}</div>
+                    <div class="card-body text-primary">
+                        <p class="card-text">${text[i].reply}</p><p class="card-text">
+                   </div>
+                </div>`
+            }
+        }
+        xhttp.open("GET", `/user/getCommentReply?id=${id}`);
+        xhttp.send();
+    }
+    function hideReplies() {
+        document.getElementById("reply").innerHTML = "";
     }
 </script>

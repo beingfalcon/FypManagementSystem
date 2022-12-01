@@ -20,6 +20,7 @@ const db = require("../models")
 const userComments = db.userComments;
 const Users = db.Users;
 const userReviews=db.userReviews
+const commentsReply=db.commentsReply
 
 router.get("/UsersORM", async (req, res) => {
   const listOfUsers = await Users.findAll({ raw: true });
@@ -281,7 +282,24 @@ router.get('/', function (req, res) {
 router.get('/home', homeController.get);
 router.get('/aboutus', aboutController.get);
 router.get('/contactus', contactController.get);
-
+router.post('/user/addCommentReply?:userID',[redirectLogin,redirectUnVerifiedUser],async function(req,res){
+  const comment=req.body.reply;
+  const commentID=req.body.id;
+  const username=req.session.username;
+  const userID=req.query.userID;
+  await commentsReply.create({reply:comment,username:username,userCommentId:commentID});
+  res.redirect(`/user?id=${userID}`);
+})
+router.get('/user/getCommentReply?:id',[redirectLogin,redirectUnVerifiedUser],async function(req,res){
+  let id=req.query.id;
+  console.log(id)
+  const reply=await commentsReply.findAll({raw:true,where:{userCommentId:id},
+    // Add order conditions here....
+    order: [
+        ['updatedAt', 'DESC'],
+    ],});
+  res.json(reply)
+});
 router.post('/user/addComment',[redirectLogin,redirectUnVerifiedUser],async function(req,res){
   const comment=req.body.comment;
   const userID=req.body.id;
@@ -697,7 +715,7 @@ router.post('/api/users/delete', function (req, res) {
   });
 })
 function generateCode() {
-  return 621267;
+  return Math.floor(100000 + Math.random() * 900000);
 }
 router.post('/users/login/verify', [redirectLogin, redirectVerifiedUser], function (req, res) {
   let code = req.body.code;
