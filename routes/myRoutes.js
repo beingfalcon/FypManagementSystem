@@ -16,15 +16,37 @@ const aboutController = require('../controllers/AboutUs');
 const contactController = require('../controllers/ContactUs');
 const usersController = require('../controllers/usersController');
 const { render } = require('ejs');
+const db = require("../models")
+const userComments = db.userComments;
+const Users = db.Users;
+const userReviews=db.userReviews
+
+router.get("/UsersORM", async (req, res) => {
+  const listOfUsers = await Users.findAll({ raw: true });
+  res.json(listOfUsers);
+});
+// router.get('/userResult', async function(req,res){
+//   let data= await fetch('http://localhost:3000/UsersORM');
+//   res.json(data)
+// });
+// router.get("/user/:postId", async (req, res) => {
+//   const postId = req.params.postId;
+//   const comments = await Comments.findAll({ where: { PostId: postId } });
+//   res.json(comments);
+// });
+// router.post("/user/comment", async (req, res) => {
+//   const comment = req.body;
+//   await userComments.create(comment);
+//   res.json(comment);
+// });
 var mysqlConnection = mysql.createConnection({
   host: "localhost",
   username: "root",
   password: "",
-  database: "mysql",
+  database: "fypmanagementsystem",
   port: "3306",
   multipleStatements: true,
 });
-
 mysqlConnection.connect((err) => {
   if (!err) console.log("Connection Established Successfully");
   else console.log("Connection Failed!" + JSON.stringify(err, undefined, 2));
@@ -51,87 +73,6 @@ router.use(session({
     sameSite: true
   }
 }));
-const Sequelize = require("sequelize");
-const sequelize = new Sequelize(
-  'mysql',
-  'root',
-  '',
-  {
-    host: 'localhost',
-    dialect: 'mysql'
-  }
-);
-router.get('/sequelize', function (req, res) {
-  sequelize.authenticate().then(() => {
-    console.log('Connection has been established successfully.');
-  }).catch((error) => {
-    console.error('Unable to connect to the database: ', error);
-  });
-  sequelize.define("userregs", {
-    id: {
-        type: Sequelize.INTEGER(11),
-        allowNull: false,
-        autoIncrement: true,
-        primaryKey: true,
-    },
-    fname: {
-        type: Sequelize.STRING(30),
-        allowNull: false,
-    },
-    lname: {
-        type: Sequelize.STRING(30),
-        allowNull: false,
-    },
-    birthday: {
-        type: Sequelize.STRING(40),
-        allowNull: true,
-    },
-    username: {
-        type: Sequelize.STRING(30),
-        allowNull: false,
-        unique: true,
-    },
-    email: {
-        type: Sequelize.STRING(50),
-        allowNull: false,
-        unique: true,
-    },
-    phone: {
-        type: Sequelize.STRING(14),
-        allowNull: true,
-    },
-    couontry: {
-        type: Sequelize.STRING(20),
-        allowNull: true,
-    },
-    password: {
-        type: Sequelize.STRING(20),
-        allowNull: false,
-    },
-    profilePic: {
-        type: Sequelize.STRING(50),
-        allowNull: true,
-    },
-    role: {
-        type: Sequelize.STRING(30),
-        allowNull: true,
-    },
-    isVerified: {
-        type: Sequelize.BOOLEAN,
-        allowNull: true,
-    },
-    verificationCode: {
-        type: Sequelize.INTEGER(11),
-        allowNull: false,
-    }
-});
-sequelize.sync().then(() => {
-    console.log('userregs table created successfully!');
- }).catch((error) => {
-    console.error('Unable to create table : ', error);
- });
- 
-})
 
 const redirectLogin = (req, res, next) => {
   if (!req.session.username) {
@@ -167,7 +108,7 @@ const redirectUnVerifiedUser = (req, res, next) => {
 }
 const redirectVerifiedUser = (req, res, next) => {
   if (req.session.isVerified) {
-    redirect("/");
+    res.redirect("/");
   }
   else {
     next();
@@ -218,6 +159,7 @@ router.post('/users/login', redirectHome, function (req, res) {
       if (results.length > 0) {
         // Authenticate the user
         req.session.loggedin = true;
+        req.session.id=results[0]
         req.session.username = username;
         req.session.role = results[0].role;
         req.session.isVerified = results[0].isVerified;
@@ -340,73 +282,165 @@ router.get('/home', homeController.get);
 router.get('/aboutus', aboutController.get);
 router.get('/contactus', contactController.get);
 
-
-router.get('/users', [redirectLogin, redirectUnVerifiedUser], function (req, res) {
+router.post('/user/addComment',[redirectLogin,redirectUnVerifiedUser],async function(req,res){
+  const comment=req.body.comment;
+  const userID=req.body.id;
+  const currentUser=req.session.id;
+  let cUser=await Users.findAll({raw:true,where:{username:req.session.username}})
+  const cID=cUser[0].id;
+  console.log(cUser[0].id);
+  const username=req.body.username;
+  await userComments.create({comment:comment,username:username,userregId:cID});
+  res.redirect(`/user?id=${userID}`);
+})
+router.post('/user/addRatings',[redirectLogin,redirectUnVerifiedUser],async function(req,res){
+  let rating=0;
+  if(req.body.rg1!=undefined){
+    rating=5;
+  }
+  else if(req.body.rg2!=undefined)
   {
-    console.log(req.query.search)
-    let userQuery = ""
-    if (req.query.search === undefined) {
-      userQuery = `SELECT COUNT(*) FROM userregs`;
-    }
-    else {
-      let fname = req.query.search;
-      userQuery = `SELECT COUNT(*) FROM userregs where fname LIKE '%${fname}%'`;
-    }
-    mysqlConnection.query(userQuery, (err, totalUsers, fields) => {
-      let userCount = totalUsers[0]["COUNT(*)"];
-      let page = req.query.page ? req.query.page : 1;
-      let usersPerPage = req.query.usersPerPage ? req.query.usersPerPage : 2;
-      let startLimit = (page - 1) * usersPerPage;
-      let totalPages = Math.ceil(userCount / usersPerPage);
-
-      //res.send(`${movieCount}`);
-      let selectQuery = ""
-      console.log(req.query.search)
-      if (req.query.search === undefined) {
-        selectQuery = `SELECT * FROM userregs 
-        LIMIT ${startLimit}, ${usersPerPage}`;
-      }
-      else {
-        let fname = req.query.search;
-        console.log(fname)
-        selectQuery = `SELECT * FROM userregs where fname LIKE '%${fname}%' LIMIT ${startLimit}, ${usersPerPage}`;
-      }
-
-      mysqlConnection.query(selectQuery, (err, users, fields) => {
-        if (!err) {
-          let user = (req.query.loggedinUser) ? req.query.loggedinUser : req.session.username;
-          let role = req.session.role;
-          console.log(users)
-          res.render("pages/users", {
-            data: users,
-            userCount,
-            page,
-            totalPages,
-            usersPerPage,
-            user: user,
-            role: role
-          });
-        }
-        else console.log(err);
-      });
+    rating=4;
+  }
+  else if(req.body.rg3!=undefined)
+  {
+    rating=3;
+  }
+  else if(req.body.rg4!=undefined)
+  {
+    rating=2;
+  }
+  else if(req.body.rg5!=undefined)
+  {
+    rating=1;
+  }
+  const review=req.body.review;
+  const userID=req.body.id;
+  const username=req.body.username;
+  await userReviews.create({username:username,review:review,ratings:rating,userregId:userID});
+  res.redirect(`/user?id=${userID}`);
+})
+router.get('/users', [redirectLogin, redirectUnVerifiedUser], async function (req, res) {
+  {
+    const allUsers = await Users.findAll({ raw: true });
+    let userCount = allUsers.length;
+    let page = req.query.page ? req.query.page : 1;
+    let usersPerPage = req.query.usersPerPage ? req.query.usersPerPage : 2;
+    let startLimit = (page - 1) * usersPerPage;
+    let totalPages = Math.ceil(userCount / usersPerPage);
+    const listOfUsers = await Users.findAll({ raw: true, offset: startLimit, limit: usersPerPage });
+    let user = (req.query.loggedinUser) ? req.query.loggedinUser : req.session.username;
+    let role = req.session.role;
+    res.render("pages/users", {
+      data: listOfUsers,
+      userCount,
+      page,
+      totalPages,
+      usersPerPage,
+      user: user,
+      role: role
     });
+    // console.log(req.query.search)
+    // let userQuery = ""
+    // if (req.query.search === undefined) {
+    //   userQuery = `SELECT COUNT(*) FROM userregs`;
+    // }
+    // else {
+    //   let fname = req.query.search;
+    //   userQuery = `SELECT COUNT(*) FROM userregs where fname LIKE '%${fname}%'`;
+    // }
+    // mysqlConnection.query(userQuery, (err, totalUsers, fields) => {
+    //   // let userCount = totalUsers[0]["COUNT(*)"];
+    //   // let page = req.query.page ? req.query.page : 1;
+    //   // let usersPerPage = req.query.usersPerPage ? req.query.usersPerPage : 2;
+    //   // let startLimit = (page - 1) * usersPerPage;
+    //   // let totalPages = Math.ceil(userCount / usersPerPage);
+
+    //   //res.send(`${movieCount}`);
+    //   let selectQuery = ""
+    //   console.log(req.query.search)
+    //   if (req.query.search === undefined) {
+    //     selectQuery = `SELECT * FROM userregs 
+    //     LIMIT ${startLimit}, ${usersPerPage}`;
+    //   }
+    //   else {
+    //     let fname = req.query.search;
+    //     console.log(fname)
+    //     selectQuery = `SELECT * FROM userregs where fname LIKE '%${fname}%' LIMIT ${startLimit}, ${usersPerPage}`;
+    //   }
+
+    //   mysqlConnection.query(selectQuery, (err, users, fields) => {
+    //     if (!err) {
+    //       let user = (req.query.loggedinUser) ? req.query.loggedinUser : req.session.username;
+    //       let role = req.session.role;
+    //       console.log(users)
+    //       res.render("pages/users", {
+    //         data: listOfUsers,
+    //         userCount,
+    //         page,
+    //         totalPages,
+    //         usersPerPage,
+    //         user: user,
+    //         role: role
+    //       });
+    //     }
+    //     else console.log(err);
+    //   });
+    // });
   }
 });
-router.get('/user', [redirectLogin], function (req, res) {
+router.get('/user/getComments?:id',[redirectLogin,redirectUnVerifiedUser],async function(req,res){
+  let id=req.query.id;
+  const comments=await userComments.findAll({raw:true,where:{userregId:id},
+    // Add order conditions here....
+    order: [
+        ['updatedAt', 'DESC'],
+    ],});
+  res.json(comments)
+});
+router.get('/user/getRatings?:id',[redirectLogin,redirectUnVerifiedUser],async function(req,res){
+  let id=req.query.id;
+  const comments=await userReviews.findAll({raw:true,where:{userregId:id},
+    // Add order conditions here....
+    order: [
+        ['updatedAt', 'DESC'],
+    ],});
+  res.json(comments)
+});
+router.get('/user?:id', [redirectLogin], async function (req, res) {
   let id = req.query.id;
-  let Query = `select * from userregs where id=${id}`;
-  mysqlConnection.query(Query, (err, user, fields) => {
-    let role = req.session.role
-    let username = req.session.username
-    if (!err) {
-      res.render('pages/user', {
-        user: user,
-        role: role,
-        username: username,
-      })
-    }
-    else console.log(err)
+  if(typeof(id)===undefined){
+    id=req.params.id
+  }
+  const user = await Users.findOne({raw:true, where: { id: id } });
+  const usrRtgs=await userReviews.findAll({raw:true,where:{userregId:id}});
+  let sum=0;
+  for(let i=0;i<usrRtgs.length;i++)
+  {
+    sum+=usrRtgs[i].ratings;
+  }
+  sum/=usrRtgs.length
+  let role = req.session.role;
+  let username = req.session.username;
+  res.render('pages/user', {
+    user: user,
+    role: role,
+    username: username,
+    rating:sum
   })
+  // let Query = `select * from userregs where id=${id}`;
+  // mysqlConnection.query(Query, (err, user, fields) => {
+  //   let role = req.session.role
+  //   let username = req.session.username
+  //   if (!err) {
+  //     res.render('pages/user', {
+  //       user: user,
+  //       role: role,
+  //       username: username,
+  //     })
+  //   }
+  //   else console.log(err)
+  // })
 })
 
 router.get('/supervisors', function (req, res) {
@@ -585,62 +619,28 @@ router.get('/users/printUsers', function (req, res) {
     });
   }
 })
-router.get('/api/users/printUsers', function (req, res) {
+router.get('/api/users', async function (req, res) {
   {
-    // request.query("SELECT COUNT(*) from userregs",(err,totalSupervisors,fields)=>{
-    //   console.log(totalSupervisors);
-    //   let userCount=totalSupervisors[1][""];
-    //   let page=req.query.page ? req.query.page :1;
-    //   var perPageUsers=req.query.usersPerPage ? req.query.usersPerPage : 3 ;
-    //   let startLimit = (page-1)*usersPerPage;
-    //   let totalPages=Math.ceil(userCount/usersPerPage);
-    //   let selectQuery=`SELECT * from userregs limit ${startLimit}, ${perPageUsers}`; 
-    //   request.query(selectQuery,(err,recordset)=>{
-    //     let jsonString=JSON.stringify(recordset)
-    //       let JSONdata=JSON.parse(jsonString);
-    //       data=JSONdata.recordset
-    //       console.log(data)
-    //       res.render('pages/users',{
-    //         data: data,
-    //         totalPages: totalPages,
-    //         startLimit: startLimit,
-    //         page: page
-    //       })
-    //   })
-    // }) 
-    // query to the database and get the records
-    mysqlConnection.query('select * from userregs', function (err, recordset) {
+    // mysqlConnection.query('select * from userregs', function (err, recordset) {
 
-      if (err) {
-        console.log(err);
-      }
+    //   if (err) {
+    //     console.log(err);
+    //   }
 
-      // send records as a response
-      else {
-        let jsonString = JSON.stringify(recordset)
-        let JSONdata = JSON.parse(jsonString);
-        data = JSONdata.recordset
-        console.log(data)
-        res.json({
-          data: data
-        }).sendStatus(200)
-        // res.render('pages/users',{
-        //   data: data
-        // },function(err,html){
-        //   pdf
-        //   .create(html,options)
-        //   .toFile("uploads/allUsers.pdf",function(err,result){
-        //     if(err) return console.log(err);
-        //     else{
-        //       var allUsersPdf=fs.readFileSync("uploads/allUsers.pdf");
-        //       res.header("content-type", "application/pdf");
-        //       res.send(allUsersPdf);
-        //     }
-        //   })
-        // })
-      }
+    //   // send records as a response
+    //   else {
+    //     let jsonString = JSON.stringify(recordset)
+    //     let JSONdata = JSON.parse(jsonString);
+    //     data = JSONdata.recordset
+    //     console.log(data)
+    //     res.json({
+    //       data: data
+    //     }).sendStatus(200)
+    //   }
 
-    });
+    // });
+    const listOfUsers = await Users.findAll({ raw: true });
+    res.json(listOfUsers);
   }
 })
 router.post('/users/delete', redirectInvalidLogin, function (req, res) {
@@ -743,7 +743,7 @@ router.post('/users/registerUser', function (req, res) {
   var country = req.body.country
   var password = req.body.password
   let code = generateCode();
-  var Query = `INSERT INTO userregs (fname,lname,birthday,username,email,phone,country,password,verificationCode) VALUES('${fname}','${lname}','${birthday}','${username}','${email}','${phone}','${country}','${password}',${code})`
+  var Query = `INSERT INTO userregs (fname,lname,birthday,username,email,phone,country,password,verificationCode,createdAt,updatedAt) VALUES('${fname}','${lname}','${birthday}','${username}','${email}','${phone}','${country}','${password}',${code},CURRENT_TIME(), CURRENT_TIME())`
   mysqlConnection.query(Query, function (err, recordset) {
 
     if (err) {
@@ -994,32 +994,5 @@ router.post('/api/users/updateUser', function (req, res) {
       }
     }
   })
-
-});
-router.post('/users/insertData', redirectInvalidLogin, function (req, res) {
-
-  // create Request object
-
-  var name = req.body.playerName
-  var Age = req.body.Age
-  var profile = req.body.profilePic
-  var info = req.body.info
-  console.log(name);
-  console.log(Age);
-  console.log(profile);
-  console.log(info);
-  var Query = `INSERT INTO express (playerName,Age,profilePic,info) VALUES('${name}',${Age},'${profile}','${info}')`
-  mysqlConnection.query(Query, function (err, recordset) {
-
-    if (err) {
-      console.log(err);
-    }
-
-    // send records as a response
-    else {
-      res.redirect('/users');
-    }
-
-  });
 });
 module.exports = router
