@@ -2,7 +2,7 @@
 const express = require('express');
 const app = express();
 const path = require('path');
-const route=require("../ClassActivity01/routes/myRoutes");
+const route=require("./routes/myRoutes");
 const port = process.env.PORT || 3000;
 var expressLayouts=require('express-ejs-layouts');
 app.set('view engine','ejs');
