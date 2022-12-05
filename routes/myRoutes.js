@@ -41,10 +41,10 @@ router.get("/UsersORM", async (req, res) => {
 //   res.json(comment);
 // });
 var mysqlConnection = mysql.createConnection({
-  host: "localhost",
-  username: "root",
-  password: "",
-  database: "fypmanagementsystem",
+  host: "sql9.freesqldatabase.com",
+  username: "sql9582209",
+  password: "JHTI8KJ9bq",
+  database: "sql9582209",
   port: "3306",
   multipleStatements: true,
 });
