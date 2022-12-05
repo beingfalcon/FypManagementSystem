@@ -145,32 +145,30 @@ router.get("/users/sendMail", function (req, res) {
 router.get('/users/login', redirectHome, function (req, res) {
   res.render('pages/Login')
 });
-router.post('/users/login', redirectHome, function (req, res) {
+router.post('/users/login', redirectHome, async function (req, res) {
 
   // create Request object
 
   var username = req.body.username
   var password = req.body.password
+  
+
   if (username && password) {
     // Execute SQL query that'll select the account from the database based on the specified username and password
-    mysqlConnection.query(`SELECT * FROM userregs WHERE username = '${username}' AND password = '${password}'`, function (error, results, fields) {
-      // If there is an issue with the query, output the error
-      if (error) throw error;
-      // If the account exists
-      if (results.length > 0) {
-        // Authenticate the user
-        req.session.loggedin = true;
-        req.session.id=results[0]
-        req.session.username = username;
-        req.session.role = results[0].role;
-        req.session.isVerified = results[0].isVerified;
-        // Redirect to home page
-        res.redirect('/users?loggedinUser=' + req.session.username);
-      } else {
-        res.redirect('/users/login?error=\'Incorrect Username and/or Password!\'');
-      }
-      res.end();
-    });
+    results=await Users.findAll({raw:true,where:{username: username,password: password}})
+    console.log(results);
+    if (results.length > 0) {
+      // Authenticate the user
+      req.session.loggedin = true;
+      req.session.id=results[0]
+      req.session.username = username;
+      req.session.role = results[0].role;
+      req.session.isVerified = results[0].isVerified;
+      // Redirect to home page
+      res.redirect('/users?loggedinUser=' + req.session.username);
+    } else {
+      res.redirect('/users/login?error=\'Incorrect Username and/or Password!\'');
+    }
   } else {
     res.send('Please enter Username and Password!');
     res.end();
@@ -585,28 +583,7 @@ router.get('/supervisors/updateSupervisor', function (req, res) {
 })
 router.get('/users/printUsers', function (req, res) {
   {
-    // request.query("SELECT COUNT(*) from userregs",(err,totalSupervisors,fields)=>{
-    //   console.log(totalSupervisors);
-    //   let userCount=totalSupervisors[1][""];
-    //   let page=req.query.page ? req.query.page :1;
-    //   var perPageUsers=req.query.usersPerPage ? req.query.usersPerPage : 3 ;
-    //   let startLimit = (page-1)*usersPerPage;
-    //   let totalPages=Math.ceil(userCount/usersPerPage);
-    //   let selectQuery=`SELECT * from userregs limit ${startLimit}, ${perPageUsers}`; 
-    //   request.query(selectQuery,(err,recordset)=>{
-    //     let jsonString=JSON.stringify(recordset)
-    //       let JSONdata=JSON.parse(jsonString);
-    //       data=JSONdata.recordset
-    //       console.log(data)
-    //       res.render('pages/users',{
-    //         data: data,
-    //         totalPages: totalPages,
-    //         startLimit: startLimit,
-    //         page: page
-    //       })
-    //   })
-    // }) 
-    // query to the database and get the records
+
     mysqlConnection.query('select * from userregs', function (err, recordset) {
 
       if (err) {
@@ -1014,5 +991,4 @@ router.post('/api/users/updateUser', function (req, res) {
     }
   })
 });
-mysqlConnection.end();
 module.exports = router
