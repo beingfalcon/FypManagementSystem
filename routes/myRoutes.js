@@ -48,6 +48,13 @@ var mysqlConnection = mysql.createConnection({
   port: "3306",
   multipleStatements: true,
 });
+var del = connection._protocol._delegateError;
+connection._protocol._delegateError = function(err, sequence){
+  if (err.fatal) {
+    console.trace('fatal error: ' + err.message);
+  }
+  return del.call(this, err, sequence);
+};
 mysqlConnection.connect((err) => {
   if (!err) console.log("Connection Established Successfully");
   else console.log("Connection Failed!" + JSON.stringify(err, undefined, 2));
