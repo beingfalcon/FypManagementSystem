@@ -49,7 +49,7 @@ var mysqlConnection = mysql.createConnection({
   multipleStatements: true,
 });
 var del = connection._protocol._delegateError;
-connection._protocol._delegateError = function(err, sequence){
+mysqlConnection._protocol._delegateError = function(err, sequence){
   if (err.fatal) {
     console.trace('fatal error: ' + err.message);
   }
