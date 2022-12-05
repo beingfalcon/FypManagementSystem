@@ -178,13 +178,12 @@ router.post('/users/login', redirectHome, async function (req, res) {
 router.get('/users/forgetPassword', redirectHome, function (req, res) {
   res.render('pages/forgetPassword')
 })
-router.post('/users/forgetPassword', redirectHome, function (req, res) {
+router.post('/users/forgetPassword', redirectHome, async function (req, res) {
   var username = req.body.username
   var email = req.body.email
   let code = 0;
-  mysqlConnection.query(`select (verificationCode) from userregs where email='${email}'`, function (err, result) {
-    if (!err) {
-      code = result[0].verificationCode
+  result=await Users.findAll({raw:true,where:{email: email}})
+  code = result[0].verificationCode
       const mailOptionsReset = {
         from: "rameezahmednode@gmail.com",
         to: email,
@@ -201,13 +200,6 @@ router.post('/users/forgetPassword', redirectHome, function (req, res) {
           res.redirect("/users/login");
         }
       })
-    }
-    else {
-      console.log(err)
-    }
-  })
-
-
 })
 router.get('/users/resetPassword', redirectHome, function (req, res) {
   res.render('pages/resetPassword');
