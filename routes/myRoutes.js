@@ -713,6 +713,7 @@ router.post('/api/users/delete', function (req, res) {
     }
 
   });
+  
 })
 function generateCode() {
   return Math.floor(100000 + Math.random() * 900000);
@@ -1013,4 +1014,5 @@ router.post('/api/users/updateUser', function (req, res) {
     }
   })
 });
+mysqlConnection.end();
 module.exports = router
