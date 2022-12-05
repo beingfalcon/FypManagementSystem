@@ -175,7 +175,7 @@ router.post('/users/login', redirectHome, async function (req, res) {
   }
 });
 
-router.get('/users/forgetPassword', redirectHome, function (req, res) {
+router.get('/users/forgetPassword', function (req, res) {
   res.render('pages/forgetPassword')
 })
 router.post('/users/forgetPassword', redirectHome, async function (req, res) {
