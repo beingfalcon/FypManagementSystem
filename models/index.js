@@ -8,7 +8,13 @@ const sequelize = new Sequelize(
   'JHTI8KJ9bq',
   {
     host: 'sql9.freesqldatabase.com',
-    dialect: 'mysql'
+    dialect: 'mysql',
+    pool: {
+      max: 5,
+      min: 0,
+      acquire: 30000,
+      idle: 10000
+    }
   }
 );
 sequelize.authenticate().then(() => {
