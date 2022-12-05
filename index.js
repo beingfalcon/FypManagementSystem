@@ -3,7 +3,7 @@ const express = require('express');
 const app = express();
 const path = require('path');
 const route=require("../ClassActivity01/routes/myRoutes");
-const port = 3000;
+const port = process.env.PORT || 3000;
 var expressLayouts=require('express-ejs-layouts');
 app.set('view engine','ejs');
 app.use(expressLayouts);

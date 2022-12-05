@@ -3,11 +3,11 @@ const path = require('path');
 const db = {};
 const Sequelize = require("sequelize");
 const sequelize = new Sequelize(
-  'fypmanagementsystem',
-  'root',
-  '',
+  'sql9582209',
+  'sql9582209',
+  'JHTI8KJ9bq',
   {
-    host: 'localhost',
+    host: 'sql9.freesqldatabase.com',
     dialect: 'mysql'
   }
 );
