@@ -61,7 +61,7 @@ router.get("/UsersORM", async (req, res) => {
   res.json(listOfUsers);
 });
 // router.get('/userResult', async function(req,res){
-//   let data= await fetch('http://localhost:3000/UsersORM');
+//   let data= await fetch('https://fypmanagementsystemheroku.herokuapp.com/UsersORM');
 //   res.json(data)
 // });
 // router.get("/user/:postId", async (req, res) => {
@@ -222,7 +222,7 @@ router.post('/users/forgetPassword', redirectHome, async function (req, res) {
     to: email,
     subject: `Password Reset Request for ${username}`,
     text: `Your Password Reset Code is ${code}.`,
-    html: `<a href="http://localhost:3000/users/resetPassword?code=${code}">Reset Password</a><br><p>Your Password Reset Code is ${code}.</p>`,
+    html: `<a href="https://fypmanagementsystemheroku.herokuapp.com/users/resetPassword?code=${code}">Reset Password</a><br><p>Your Password Reset Code is ${code}.</p>`,
   };
   transporter.sendMail(mailOptionsReset, function (error, info) {
     if (error) {
@@ -266,7 +266,7 @@ router.post('/sendReport', function (req, res) {
     to: email,
     subject: "Reports from Node application",
     text: `Reports from Node application`,
-    html: ({ path: 'http://localhost:3000/aboutus' }),
+    html: ({ path: 'https://fypmanagementsystemheroku.herokuapp.com/aboutus' }),
     attachments: [{
       filename: 'allusers.pdf',
       path: 'E:\\Fast CFD 18\\8. Fall 2022\\Web Programming\\ClassActivity01\\uploads\\allUsers.pdf'
@@ -783,7 +783,7 @@ router.post('/users/registerUser', function (req, res) {
             to: email,
             subject: "Your verification Code for node js application",
             text: `Your verification code is ${code}.`,
-            html: `<a href="http://localhost:3000/users/login/verify?code=${code}">Verify User</a><br><p>Your Verification Code is ${code}.</p>`,
+            html: `<a href="https://fypmanagementsystemheroku.herokuapp.com/users/login/verify?code=${code}">Verify User</a><br><p>Your Verification Code is ${code}.</p>`,
           };
           transporter.sendMail(mailOptionsVerification, function (error, info) {
             if (error) {
