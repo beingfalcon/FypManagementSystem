@@ -6,22 +6,56 @@ const pdf = require("html-pdf");
 const fs = require("fs");
 const bodyparser = require("body-parser");
 const cookieParser = require("cookie-parser");
-const session = require("express-session");
+// const session = require("express-session");
 const nodemailer = require("nodemailer");
 const { body, validator } = require("express-validator");
-const mysqlSession = require("express-mysql-session")(session);
+// const mysqlSession = require("express-mysql-session")(session);
 const options = { format: "A4" };
 const homeController = require('../controllers/HomeController');
 const aboutController = require('../controllers/AboutUs');
 const contactController = require('../controllers/ContactUs');
 const usersController = require('../controllers/usersController');
 const { render } = require('ejs');
-const db = require("../models")
+const db = require("../models");
+// const { sequelize } = require('../models');
 const userComments = db.userComments;
 const Users = db.Users;
-const userReviews=db.userReviews
-const commentsReply=db.commentsReply
-
+const userReviews = db.userReviews
+const commentsReply = db.commentsReply
+const session = db.session;
+const sequelize=db.sequelize
+const SequelizeStore = db.SequelizeStore;
+const sessiontble=db.sessiontble;
+// function extendDefaultFields(defaults, session) {
+//   return {
+//     data: defaults.data,
+//     expires: defaults.expires,
+//     userId: session.userId,
+//   };
+// }
+// var store = new SequelizeStore({
+//   db: sequelize,
+//   table: "Session",
+//   extendDefaultFields: extendDefaultFields,
+// });
+var myStore = new SequelizeStore({
+  db: sequelize,
+  checkExpirationInterval: 15 * 60 * 1000,
+  expiration: 5 * 60 * 1000
+});
+router.use(
+  session({
+    name: 'sid',
+    secret: 'secret',
+    resave: false,
+    store: myStore,
+    saveUninitialized: true,
+    cookie: {
+      sameSite: true
+    }
+  })
+)
+myStore.sync();
 router.get("/UsersORM", async (req, res) => {
   const listOfUsers = await Users.findAll({ raw: true });
   res.json(listOfUsers);
@@ -40,40 +74,39 @@ router.get("/UsersORM", async (req, res) => {
 //   await userComments.create(comment);
 //   res.json(comment);
 // });
-var mysqlConnection = mysql.createConnection({
-  host: "sql9.freesqldatabase.com",
-  username: "sql9582209",
-  password: "JHTI8KJ9bq",
-  database: "sql9582209",
-  port: "3306",
-  multipleStatements: true,
-});
-mysqlConnection.connect((err) => {
-  if (!err) console.log("Connection Established Successfully");
-  else console.log("Connection Failed!" + JSON.stringify(err, undefined, 2));
-});
-var sessionStore = new mysqlSession({
-  expiration: 60 * 5 * 1000,
-  createDatabaseTable: true,
-  schema: {
-    tableName: 'sessiontble',
-    columnNames: {
-      session_id: 'session_id',
-      expires: 'expires',
-      data: 'data'
-    }
-  }
-}, mysqlConnection)
-router.use(session({
-  name: 'suid',
-  secret: 'secret',
-  resave: false,
-  store: sessionStore,
-  saveUninitialized: true,
-  cookie: {
-    sameSite: true
-  }
-}));
+// var mysqlConnection = mysql.createConnection({
+//   host: "db4free.net",
+//   username: "f180323",
+//   password: "123456789",
+//   database: "f180323",
+//   multipleStatements: true,
+// });
+// mysqlConnection.connect((err) => {
+//   if (!err) console.log("Connection Established Successfully");
+//   else console.log("Connection Failed!" + JSON.stringify(err, undefined, 2));
+// });
+// var sessionStore = new mysqlSession({
+//   expiration: 60 * 5 * 1000,
+//   createDatabaseTable: true,
+//   schema: {
+//     tableName: 'sessiontble',
+//     columnNames: {
+//       session_id: 'session_id',
+//       expires: 'expires',
+//       data: 'data'
+//     }
+//   }
+// }, mysqlConnection)
+// router.use(session({
+//   name: 'suid',
+//   secret: 'secret',
+//   resave: false,
+//   store: sessionStore,
+//   saveUninitialized: true,
+//   cookie: {
+//     sameSite: true
+//   }
+// }));
 
 const redirectLogin = (req, res, next) => {
   if (!req.session.username) {
@@ -151,16 +184,16 @@ router.post('/users/login', redirectHome, async function (req, res) {
 
   var username = req.body.username
   var password = req.body.password
-  
+
 
   if (username && password) {
     // Execute SQL query that'll select the account from the database based on the specified username and password
-    results=await Users.findAll({raw:true,where:{username: username,password: password}})
+    results = await Users.findAll({ raw: true, where: { username: username, password: password } })
     console.log(results);
     if (results.length > 0) {
       // Authenticate the user
       req.session.loggedin = true;
-      req.session.id=results[0]
+      req.session.id = results[0]
       req.session.username = username;
       req.session.role = results[0].role;
       req.session.isVerified = results[0].isVerified;
@@ -182,24 +215,24 @@ router.post('/users/forgetPassword', redirectHome, async function (req, res) {
   var username = req.body.username
   var email = req.body.email
   let code = 0;
-  result=await Users.findAll({raw:true,where:{email: email}})
+  result = await Users.findAll({ raw: true, where: { email: email } })
   code = result[0].verificationCode
-      const mailOptionsReset = {
-        from: "rameezahmednode@gmail.com",
-        to: email,
-        subject: `Password Reset Request for ${username}`,
-        text: `Your Password Reset Code is ${code}.`,
-        html: `<a href="http://localhost:3000/users/resetPassword?code=${code}">Reset Password</a><br><p>Your Password Reset Code is ${code}.</p>`,
-      };
-      transporter.sendMail(mailOptionsReset, function (error, info) {
-        if (error) {
-          console.log(error);
-        }
-        else {
-          console.log(`Email.sent to ${email}: ${info.response}`);
-          res.redirect("/users/login");
-        }
-      })
+  const mailOptionsReset = {
+    from: "rameezahmednode@gmail.com",
+    to: email,
+    subject: `Password Reset Request for ${username}`,
+    text: `Your Password Reset Code is ${code}.`,
+    html: `<a href="http://localhost:3000/users/resetPassword?code=${code}">Reset Password</a><br><p>Your Password Reset Code is ${code}.</p>`,
+  };
+  transporter.sendMail(mailOptionsReset, function (error, info) {
+    if (error) {
+      console.log(error);
+    }
+    else {
+      console.log(`Email.sent to ${email}: ${info.response}`);
+      res.redirect("/users/login");
+    }
+  })
 })
 router.get('/users/resetPassword', redirectHome, function (req, res) {
   res.render('pages/resetPassword');
@@ -272,60 +305,58 @@ router.get('/', function (req, res) {
 router.get('/home', homeController.get);
 router.get('/aboutus', aboutController.get);
 router.get('/contactus', contactController.get);
-router.post('/user/addCommentReply?:userID',[redirectLogin,redirectUnVerifiedUser],async function(req,res){
-  const comment=req.body.reply;
-  const commentID=req.body.id;
-  const username=req.session.username;
-  const userID=req.query.userID;
-  await commentsReply.create({reply:comment,username:username,userCommentId:commentID});
+router.post('/user/addCommentReply?:userID', [redirectLogin, redirectUnVerifiedUser], async function (req, res) {
+  const comment = req.body.reply;
+  const commentID = req.body.id;
+  const username = req.session.username;
+  const userID = req.query.userID;
+  await commentsReply.create({ reply: comment, username: username, userCommentId: commentID });
   res.redirect(`/user?id=${userID}`);
 })
-router.get('/user/getCommentReply?:id',[redirectLogin,redirectUnVerifiedUser],async function(req,res){
-  let id=req.query.id;
+router.get('/user/getCommentReply?:id', [redirectLogin, redirectUnVerifiedUser], async function (req, res) {
+  let id = req.query.id;
   console.log(id)
-  const reply=await commentsReply.findAll({raw:true,where:{userCommentId:id},
+  const reply = await commentsReply.findAll({
+    raw: true, where: { userCommentId: id },
     // Add order conditions here....
     order: [
-        ['updatedAt', 'DESC'],
-    ],});
+      ['updatedAt', 'DESC'],
+    ],
+  });
   res.json(reply)
 });
-router.post('/user/addComment',[redirectLogin,redirectUnVerifiedUser],async function(req,res){
-  const comment=req.body.comment;
-  const userID=req.body.id;
-  const currentUser=req.session.id;
-  let cUser=await Users.findAll({raw:true,where:{username:req.session.username}})
-  const cID=cUser[0].id;
+router.post('/user/addComment', [redirectLogin, redirectUnVerifiedUser], async function (req, res) {
+  const comment = req.body.comment;
+  const userID = req.body.id;
+  const currentUser = req.session.id;
+  let cUser = await Users.findAll({ raw: true, where: { username: req.session.username } })
+  const cID = cUser[0].id;
   console.log(cUser[0].id);
-  const username=req.body.username;
-  await userComments.create({comment:comment,username:username,userregId:cID});
+  const username = req.body.username;
+  await userComments.create({ comment: comment, username: username, userregId: cID });
   res.redirect(`/user?id=${userID}`);
 })
-router.post('/user/addRatings',[redirectLogin,redirectUnVerifiedUser],async function(req,res){
-  let rating=0;
-  if(req.body.rg1!=undefined){
-    rating=5;
+router.post('/user/addRatings', [redirectLogin, redirectUnVerifiedUser], async function (req, res) {
+  let rating = 0;
+  if (req.body.rg1 != undefined) {
+    rating = 5;
   }
-  else if(req.body.rg2!=undefined)
-  {
-    rating=4;
+  else if (req.body.rg2 != undefined) {
+    rating = 4;
   }
-  else if(req.body.rg3!=undefined)
-  {
-    rating=3;
+  else if (req.body.rg3 != undefined) {
+    rating = 3;
   }
-  else if(req.body.rg4!=undefined)
-  {
-    rating=2;
+  else if (req.body.rg4 != undefined) {
+    rating = 2;
   }
-  else if(req.body.rg5!=undefined)
-  {
-    rating=1;
+  else if (req.body.rg5 != undefined) {
+    rating = 1;
   }
-  const review=req.body.review;
-  const userID=req.body.id;
-  const username=req.body.username;
-  await userReviews.create({username:username,review:review,ratings:rating,userregId:userID});
+  const review = req.body.review;
+  const userID = req.body.id;
+  const username = req.body.username;
+  await userReviews.create({ username: username, review: review, ratings: rating, userregId: userID });
   res.redirect(`/user?id=${userID}`);
 })
 router.get('/users', [redirectLogin, redirectUnVerifiedUser], async function (req, res) {
@@ -397,44 +428,47 @@ router.get('/users', [redirectLogin, redirectUnVerifiedUser], async function (re
     // });
   }
 });
-router.get('/user/getComments?:id',[redirectLogin,redirectUnVerifiedUser],async function(req,res){
-  let id=req.query.id;
-  const comments=await userComments.findAll({raw:true,where:{userregId:id},
+router.get('/user/getComments?:id', [redirectLogin, redirectUnVerifiedUser], async function (req, res) {
+  let id = req.query.id;
+  const comments = await userComments.findAll({
+    raw: true, where: { userregId: id },
     // Add order conditions here....
     order: [
-        ['updatedAt', 'DESC'],
-    ],});
+      ['updatedAt', 'DESC'],
+    ],
+  });
   res.json(comments)
 });
-router.get('/user/getRatings?:id',[redirectLogin,redirectUnVerifiedUser],async function(req,res){
-  let id=req.query.id;
-  const comments=await userReviews.findAll({raw:true,where:{userregId:id},
+router.get('/user/getRatings?:id', [redirectLogin, redirectUnVerifiedUser], async function (req, res) {
+  let id = req.query.id;
+  const comments = await userReviews.findAll({
+    raw: true, where: { userregId: id },
     // Add order conditions here....
     order: [
-        ['updatedAt', 'DESC'],
-    ],});
+      ['updatedAt', 'DESC'],
+    ],
+  });
   res.json(comments)
 });
 router.get('/user?:id', [redirectLogin], async function (req, res) {
   let id = req.query.id;
-  if(typeof(id)===undefined){
-    id=req.params.id
+  if (typeof (id) === undefined) {
+    id = req.params.id
   }
-  const user = await Users.findOne({raw:true, where: { id: id } });
-  const usrRtgs=await userReviews.findAll({raw:true,where:{userregId:id}});
-  let sum=0;
-  for(let i=0;i<usrRtgs.length;i++)
-  {
-    sum+=usrRtgs[i].ratings;
+  const user = await Users.findOne({ raw: true, where: { id: id } });
+  const usrRtgs = await userReviews.findAll({ raw: true, where: { userregId: id } });
+  let sum = 0;
+  for (let i = 0; i < usrRtgs.length; i++) {
+    sum += usrRtgs[i].ratings;
   }
-  sum/=usrRtgs.length
+  sum /= usrRtgs.length
   let role = req.session.role;
   let username = req.session.username;
   res.render('pages/user', {
     user: user,
     role: role,
     username: username,
-    rating:sum
+    rating: sum
   })
   // let Query = `select * from userregs where id=${id}`;
   // mysqlConnection.query(Query, (err, user, fields) => {
@@ -682,7 +716,7 @@ router.post('/api/users/delete', function (req, res) {
     }
 
   });
-  
+
 })
 function generateCode() {
   return Math.floor(100000 + Math.random() * 900000);
