@@ -23,9 +23,9 @@ const Users = db.Users;
 const userReviews = db.userReviews
 const commentsReply = db.commentsReply
 const session = db.session;
-const sequelize=db.sequelize
+const sequelize = db.sequelize
 const SequelizeStore = db.SequelizeStore;
-const sessiontble=db.sessiontble;
+const sessiontble = db.sessiontble;
 // function extendDefaultFields(defaults, session) {
 //   return {
 //     data: defaults.data,
@@ -237,24 +237,33 @@ router.post('/users/forgetPassword', redirectHome, async function (req, res) {
 router.get('/users/resetPassword', redirectHome, function (req, res) {
   res.render('pages/resetPassword');
 })
-router.post('/users/resetPassword', redirectHome, function (req, res) {
+router.post('/users/resetPassword', redirectHome, async function (req, res) {
   var username = req.body.username
   var email = req.body.email
   var password = req.body.password
   var code = req.body.code
-  mysqlConnection.query(`select count(*) from userregs where username='${username}' and email='${email}' and verificationCode=${code}`, function (err, result, fields) {
-    let count = result[0]['count(*)']
-    if (count == 1) {
-      mysqlConnection.query(`Update userregs SET password='${password}' where username='${username}' and email='${email}'`, function (err, result) {
-        if (!err) {
-          res.redirect('/users')
-        }
-        else {
-          console.log(err)
-        }
-      })
-    }
-  })
+  let result = await Users.findAll({ raw: true, where: { username: username, verificationCode: code } })
+  let count = result.length;
+  if (count == 1) {
+    const user = await Users.update(
+      { password: password },
+      { where: { username: username, email: email } }
+    )
+    res.redirect("/users")
+  }
+  // mysqlConnection.query(`select count(*) from userregs where username='${username}' and email='${email}' and verificationCode=${code}`, function (err, result, fields) {
+  //   let count = result[0]['count(*)']
+  //   if (count == 1) {
+  //     mysqlConnection.query(`Update userregs SET password='${password}' where username='${username}' and email='${email}'`, function (err, result) {
+  //       if (!err) {
+  //         res.redirect('/users')
+  //       }
+  //       else {
+  //         console.log(err)
+  //       }
+  //     })
+  //   }
+  // })
 })
 router.get('/sendReport', function (req, res) {
   res.render('pages/sendReport');
@@ -558,30 +567,34 @@ router.get('/supervisors/registerSupervisor', function (req, res) {
   res.render('pages/registerSupervisor')
 })
 
-router.get('/users/updateUser', redirectInvalidLogin, function (req, res) {
+router.get('/users/updateUser', redirectInvalidLogin, async function (req, res) {
 
   // create Request object
-  console.log(req.session.role)
   var id = req.query.id
-  mysqlConnection.query(`select * from userregs WHERE  id= ${id}`, function (err, recordset) {
+  let recordset = await Users.findAll({ raw: true, where: { id: id } })
+  res.render('pages/updateUser', {
+    data: recordset,
+    id: id,
+  })
+  // mysqlConnection.query(`select * from userregs WHERE  id= ${id}`, function (err, recordset) {
 
-    if (err) {
-      console.log(err);
-    }
+  //   if (err) {
+  //     console.log(err);
+  //   }
 
-    // send records as a response
-    else {
-      let jsonString = JSON.stringify(recordset)
-      let JSONdata = JSON.parse(jsonString);
-      data = recordset
-      console.log(data)
-      res.render('pages/updateUser', {
-        data: data,
-        id: id,
-      })
-    }
+  //   // send records as a response
+  //   else {
+  //     let jsonString = JSON.stringify(recordset)
+  //     let JSONdata = JSON.parse(jsonString);
+  //     data = recordset
+  //     console.log(data)
+  //     res.render('pages/updateUser', {
+  //       data: data,
+  //       id: id,
+  //     })
+  //   }
 
-  });
+  // });
 })
 router.get('/supervisors/updateSupervisor', function (req, res) {
 
@@ -664,22 +677,27 @@ router.get('/api/users', async function (req, res) {
     res.json(listOfUsers);
   }
 })
-router.post('/users/delete', redirectInvalidLogin, function (req, res) {
+router.post('/users/delete', redirectInvalidLogin, async function (req, res) {
   var id = req.body.id
-  console.log(id);
-  var Query = `DELETE FROM userregs WHERE id=${id}`
-  mysqlConnection.query(Query, function (err, recordset) {
-
-    if (err) {
-      console.log(err);
+  Users.destroy({
+    where: {
+      id: id
     }
-
-    // send records as a response
-    else {
-      res.redirect('/users');
-    }
-
   });
+  res.redirect('/users');
+  // var Query = `DELETE FROM userregs WHERE id=${id}`
+  // mysqlConnection.query(Query, function (err, recordset) {
+
+  //   if (err) {
+  //     console.log(err);
+  //   }
+
+  //   // send records as a response
+  //   else {
+  //     res.redirect('/users');
+  //   }
+
+  // });
 })
 router.post('/supervisors/delete', function (req, res) {
   var id = req.body.id
@@ -721,38 +739,59 @@ router.post('/api/users/delete', function (req, res) {
 function generateCode() {
   return Math.floor(100000 + Math.random() * 900000);
 }
-router.post('/users/login/verify', [redirectLogin, redirectVerifiedUser], function (req, res) {
+router.post('/users/login/verify', [redirectLogin, redirectVerifiedUser], async function (req, res) {
   let code = req.body.code;
   let username = req.session.username;
-
-  let Query = `select (verificationCode) from userregs where username = '${username}'`;
-  mysqlConnection.query(Query, function (err, data) {
-    if (err) {
-      console.log(err)
-    }
-    else {
-      if (data[0].verificationCode == code) {
-        mysqlConnection.query(`Update userregs SET isVerified=1 where username='${username}'`, function (err, result) {
-          if (!err) {
-            res.redirect("/users/logout")
-          }
-          else {
-            console.log(err);
-            res.redirect("/users/login/verify");
-          }
-        })
-      }
-      else {
-        res.render("pages/VerifyUser", {
-          username,
-          message: "Invalid Verification Code"
-        })
-      }
-    }
-  })
+  let data = await Users.findAll({ raw: true, where: { username: username } })
+  if (data[0].verificationCode == code) {
+    await Users.update(
+      { isVerified: 1 },
+      { where: { username: username } }
+    )
+    res.redirect("/users/logout")
+    // mysqlConnection.query(`Update userregs SET isVerified=1 where username='${username}'`, function (err, result) {
+    //   if (!err) {
+    //     res.redirect("/users/logout")
+    //   }
+    //   else {
+    //     res.redirect("/users/login/verify");
+    //   }
+    // })
+  }
+  else {
+    res.render("pages/VerifyUser", {
+      username,
+      message: "Invalid Verification Code or data"
+    })
+  }
+  // let Query = `select (verificationCode) from userregs where username = '${username}'`;
+  // mysqlConnection.query(Query, function (err, data) {
+  //   if (err) {
+  //     console.log(err)
+  //   }
+  //   else {
+  //     if (data[0].verificationCode == code) {
+  //       mysqlConnection.query(`Update userregs SET isVerified=1 where username='${username}'`, function (err, result) {
+  //         if (!err) {
+  //           res.redirect("/users/logout")
+  //         }
+  //         else {
+  //           console.log(err);
+  //           res.redirect("/users/login/verify");
+  //         }
+  //       })
+  //     }
+  //     else {
+  //       res.render("pages/VerifyUser", {
+  //         username,
+  //         message: "Invalid Verification Code"
+  //       })
+  //     }
+  //   }
+  // })
 
 })
-router.post('/users/registerUser', function (req, res) {
+router.post('/users/registerUser', async function (req, res) {
 
   // create Request object
 
@@ -762,47 +801,77 @@ router.post('/users/registerUser', function (req, res) {
   var username = req.body.username
   var email = req.body.email
   var phone = req.body.phone
+  var profilePic=req.body.profilePic
   var country = req.body.country
   var password = req.body.password
+  var role=req.body.role
   let code = generateCode();
-  var Query = `INSERT INTO userregs (fname,lname,birthday,username,email,phone,country,password,verificationCode,createdAt,updatedAt) VALUES('${fname}','${lname}','${birthday}','${username}','${email}','${phone}','${country}','${password}',${code},CURRENT_TIME(), CURRENT_TIME())`
-  mysqlConnection.query(Query, function (err, recordset) {
+  const jane = await Users.create({ fname: fname, lname: lname, birthday: birthday, username: username,role:role, email: email, phone: phone,profilePic:profilePic, country: country, password: password, verificationCode:code,createdAt: sequelize.fn('NOW'), updatedAt: sequelize.fn('NOW') });
+  if (body(email).isEmail()) {
+    res.render("pages/verifyuser", {
+      username, code
+    }, function (err, html) {
+      const mailOptionsVerification = {
+        from: "rameezahmednode@gmail.com",
+        to: email,
+        subject: "Your verification Code for node js application",
+        text: `Your verification code is ${code}.`,
+        html: `<a href="https://fypmanagementsystemheroku.herokuapp.com/users/login/verify?code=${code}">Verify User</a><br><p>Your Verification Code is ${code}.</p>`,
+      };
+      transporter.sendMail(mailOptionsVerification, function (error, info) {
+        if (error) {
+          console.log(error);
+        }
+        else {
+          console.log(`Email.sent to ${email}: ${info.response}`);
+          res.redirect("/users/login");
+        }
+      })
+    })
+    res.redirect('/users/login');
+  }
+  else {
+    res.redirect("/users/login");
+  }
 
-    if (err) {
-      console.log(err);
-    }
+  // var Query = `INSERT INTO userregs (fname,lname,birthday,username,email,phone,country,password,verificationCode,createdAt,updatedAt) VALUES('${fname}','${lname}','${birthday}','${username}','${email}','${phone}','${country}','${password}',${code},CURRENT_TIME(), CURRENT_TIME())`
+  // mysqlConnection.query(Query, function (err, recordset) {
 
-    // send records as a response
-    else {
-      if (body(email).isEmail()) {
-        res.render("pages/VerifyUser", {
-          username, code
-        }, function (err, html) {
-          const mailOptionsVerification = {
-            from: "rameezahmednode@gmail.com",
-            to: email,
-            subject: "Your verification Code for node js application",
-            text: `Your verification code is ${code}.`,
-            html: `<a href="https://fypmanagementsystemheroku.herokuapp.com/users/login/verify?code=${code}">Verify User</a><br><p>Your Verification Code is ${code}.</p>`,
-          };
-          transporter.sendMail(mailOptionsVerification, function (error, info) {
-            if (error) {
-              console.log(error);
-            }
-            else {
-              console.log(`Email.sent to ${email}: ${info.response}`);
-              res.redirect("/users/login");
-            }
-          })
-        })
-        res.redirect('/users/login');
-      }
-      else {
-        res.redirect("/users/login");
-      }
-    }
+  //   if (err) {
+  //     console.log(err);
+  //   }
 
-  });
+  //   // send records as a response
+  //   else {
+  //     if (body(email).isEmail()) {
+  //       res.render("pages/VerifyUser", {
+  //         username, code
+  //       }, function (err, html) {
+  //         const mailOptionsVerification = {
+  //           from: "rameezahmednode@gmail.com",
+  //           to: email,
+  //           subject: "Your verification Code for node js application",
+  //           text: `Your verification code is ${code}.`,
+  //           html: `<a href="https://fypmanagementsystemheroku.herokuapp.com/users/login/verify?code=${code}">Verify User</a><br><p>Your Verification Code is ${code}.</p>`,
+  //         };
+  //         transporter.sendMail(mailOptionsVerification, function (error, info) {
+  //           if (error) {
+  //             console.log(error);
+  //           }
+  //           else {
+  //             console.log(`Email.sent to ${email}: ${info.response}`);
+  //             res.redirect("/users/login");
+  //           }
+  //         })
+  //       })
+  //       res.redirect('/users/login');
+  //     }
+  //     else {
+  //       res.redirect("/users/login");
+  //     }
+  //   }
+
+  // });
 })
 router.post('/supervisors/registerSupervisor', function (req, res) {
 
@@ -865,7 +934,7 @@ router.post('/api/users/registerUser', function (req, res) {
 
   });
 })
-router.post('/users/updateUser', redirectInvalidLogin, function (req, res) {
+router.post('/users/updateUser', redirectInvalidLogin, async function (req, res) {
 
   // create Request object
   var id = req.body.id
@@ -879,36 +948,21 @@ router.post('/users/updateUser', redirectInvalidLogin, function (req, res) {
   var password = req.body.password
   var oldpassword = req.body.oldpassword
   var profilePic = req.body.profilePic
-  mysqlConnection.query(`select (password) from userregs where id=${id}`, function (err, recordset) {
-    if (err) {
-      console.log(err);
-    }
-    else {
-      data = recordset
-      console.log(data)
-      if (data[0].password == oldpassword) {
-        var Query = `UPDATE userregs SET fname = '${fname}', lname='${lname}', birthday='${birthday}', username='${username}', email='${email}', phone='${phone}', country='${country}',password='${password}', profilePic='${profilePic}',updatedAt=CURRENT_TIME()  WHERE id=${id}`
-        mysqlConnection.query(Query, function (err, recordset) {
-
-          if (err) {
-            console.log(err);
-          }
-
-          // send records as a response
-          else {
-            res.redirect('/users');
-          }
-
-        });
-      }
-      else {
-        var error = "Invalid Old Password"
-        res.render("/users/updateUser?id=" + id, {
-          error: error
-        })
-      }
-    }
-  })
+  let dataPassword = await Users.findAll({ raw: true, where: { id: id } })
+  data = dataPassword
+  if (data[0].password == oldpassword) {
+    const user = await Users.update(
+      { fname: fname, lname: lname, birthday: birthday, username: username, email: email, phone: phone, profilePic: profilePic, country: country, password: password, createdAt: sequelize.fn('NOW'), updatedAt: sequelize.fn('NOW') },
+      { where: { id: id } }
+    )
+    res.redirect('/users');
+  }
+  else {
+    var error = "Invalid Old Password"
+    res.render("/users/updateUser?id=" + id, {
+      error: "Invalid Password"
+    })
+  }
 })
 router.post('/supervisors/updateSupervisor', function (req, res) {
 
