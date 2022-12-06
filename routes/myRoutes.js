@@ -176,8 +176,7 @@ router.get("/users/sendMail", function (req, res) {
   });
 })
 router.get('/users/login', redirectHome, function (req, res) {
-  // res.render('pages/Login')
-  res.render('pages/forgetPassword')
+  res.render('pages/Login')
 });
 router.post('/users/login', redirectHome, async function (req, res) {
 
