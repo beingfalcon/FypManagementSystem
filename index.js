@@ -52,80 +52,80 @@ io.on("connection", function (socket) {
 });
 app.use('/', route);
 // Adminjs COnfiguration
-{
-	const DEFAULT_ADMIN = {
-		email: 'rameez',
-		password: '123456789',
-	}
 
-	const authenticate = async (email, password) => {
-		if (email === DEFAULT_ADMIN.email && password === DEFAULT_ADMIN.password) {
-			return Promise.resolve(DEFAULT_ADMIN)
-		}
-		return null
-	}
-	AdminJS.registerAdapter({
-		Resource: AdminJSSequelize.Resource,
-		Database: AdminJSSequelize.Database,
-	})
-	const adminOptions = {
-		// We pass Category to `resources`
-		databases: [sequelize],
-	}
-	const usersNavigation = {
-		name: 'Users',
-		icon: 'User',
-	}
-	const messageNavigation = {
-		name: 'Messages',
-		icon: 'Chat',
-	}
-	const commentNavigation = {
-		name: 'Comments',
-		icon: 'Chat',
-	}
-	const commentReplyNavigation = {
-		name: 'Comments Reply',
-		icon: 'Chat',
-	}
-	const reviewNavigation = {
-		name: 'Review',
-		icon: 'Chat',
-	}
-	const admin = new AdminJS({
-		adminOptions,
-		resources: [
-			{
-				resource: Users, options: {
-					navigation: usersNavigation,
-				}
-			},
-			{
-				resource: userReview, options: {
-					navigation: reviewNavigation,
-				}
-			},
-			{
-				resource: userComments, options: {
-					navigation: commentNavigation,
-				}
-			},
-			{
-				resource: commentsReply, options: {
-					navigation: commentReplyNavigation,
-				}
-			},
-			{
-				resource: message,
-				options: {
-					navigation: messageNavigation, usersNavigation,
-				},
-			}
-		]
-	})
-	const adminRouter = AdminJSExpress.buildRouter(admin)
-	app.use(admin.options.rootPath, adminRouter)
+const DEFAULT_ADMIN = {
+	email: 'rameez',
+	password: '123456789',
 }
+
+const authenticate = async (email, password) => {
+	if (email === DEFAULT_ADMIN.email && password === DEFAULT_ADMIN.password) {
+		return Promise.resolve(DEFAULT_ADMIN)
+	}
+	return null
+}
+AdminJS.registerAdapter({
+	Resource: AdminJSSequelize.Resource,
+	Database: AdminJSSequelize.Database,
+})
+const adminOptions = {
+	// We pass Category to `resources`
+	databases: [sequelize],
+}
+const usersNavigation = {
+	name: 'Users',
+	icon: 'User',
+}
+const messageNavigation = {
+	name: 'Messages',
+	icon: 'Chat',
+}
+const commentNavigation = {
+	name: 'Comments',
+	icon: 'Chat',
+}
+const commentReplyNavigation = {
+	name: 'Comments Reply',
+	icon: 'Chat',
+}
+const reviewNavigation = {
+	name: 'Review',
+	icon: 'Chat',
+}
+const admin = new AdminJS({
+	adminOptions,
+	resources: [
+		{
+			resource: Users, options: {
+				navigation: usersNavigation,
+			}
+		},
+		{
+			resource: userReview, options: {
+				navigation: reviewNavigation,
+			}
+		},
+		{
+			resource: userComments, options: {
+				navigation: commentNavigation,
+			}
+		},
+		{
+			resource: commentsReply, options: {
+				navigation: commentReplyNavigation,
+			}
+		},
+		{
+			resource: message,
+			options: {
+				navigation: messageNavigation, usersNavigation,
+			},
+		}
+	]
+})
+const adminRouter = AdminJSExpress.buildRouter(admin)
+app.use(admin.options.rootPath, adminRouter)
+
 http.listen(port, () => {
 	console.log(`http://localhost:${port}${admin.options.rootPath}`);
 });
