@@ -41,6 +41,7 @@ db.session = session;
 db.SequelizeStore = SequelizeStore;
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
+db.Messages=require("./messages")(sequelize,Sequelize);
 db.userComments = require("./userComments")(sequelize, Sequelize);
 db.Users = require("./users")(sequelize, Sequelize);
 db.userReviews = require("./userReview")(sequelize, Sequelize);

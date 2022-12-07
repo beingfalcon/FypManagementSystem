@@ -164,6 +164,19 @@ const mailOptions = {
   text: "This is my First Email using NodeJS",
   html: "<b>This is my First Email using NodeJS</b>",
 };
+router.get("/get_users", async function (req, res) {
+  let allUsers = await Users.findAll({
+    raw: true,
+    attributes: ['username']
+  });
+  res.send(JSON.stringify(allUsers));
+});
+router.get("/users/chat", [redirectLogin], function (req, res) {
+  let username = req.session.username;
+  res.render('chat', {
+    username: username
+  });
+});
 router.get("/users/sendMail", function (req, res) {
   transporter.sendMail(mailOptions, function (error, info) {
     if (error) {
@@ -174,7 +187,7 @@ router.get("/users/sendMail", function (req, res) {
       res.redirect("/users");
     }
   });
-})
+});
 router.get('/users/login', redirectHome, function (req, res) {
   res.render('pages/Login')
 });
@@ -801,12 +814,12 @@ router.post('/users/registerUser', async function (req, res) {
   var username = req.body.username
   var email = req.body.email
   var phone = req.body.phone
-  var profilePic=req.body.profilePic
+  var profilePic = req.body.profilePic
   var country = req.body.country
   var password = req.body.password
-  var role=req.body.role
+  var role = req.body.role
   let code = generateCode();
-  const jane = await Users.create({ fname: fname, lname: lname, birthday: birthday, username: username,role:role, email: email, phone: phone,profilePic:profilePic, country: country, password: password, verificationCode:code,createdAt: sequelize.fn('NOW'), updatedAt: sequelize.fn('NOW') });
+  const jane = await Users.create({ fname: fname, lname: lname, birthday: birthday, username: username, role: role, email: email, phone: phone, profilePic: profilePic, country: country, password: password, verificationCode: code, createdAt: sequelize.fn('NOW'), updatedAt: sequelize.fn('NOW') });
   if (body(email).isEmail()) {
     res.render("pages/verifyuser", {
       username, code

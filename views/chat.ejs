@@ -1,0 +1,167 @@
+<link href="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<!------ Include the above in your HEAD tag ---------->
+<!-- <script src="js/socket.io.js"></script> -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.3/socket.io.js"
+    integrity="sha512-Jr0UIR/Q8MUX+93zjDOhuDUKLqJZObtwpkLJQcR9qMaLgL0thet39IORuavUaZFkZ8a4ktrUsKPM9mf5LWMduA=="
+    crossorigin="anonymous"></script>
+
+<html>
+
+<head>
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css" type="text/css"
+        rel="stylesheet" />
+</head>
+
+<body>
+    <div class="container">
+        <h3 class=" text-center">Chat</h3>
+        <div class="messaging">
+            <div class="inbox_msg">
+                <div class="inbox_people">
+                    <div class="headind_srch">
+                        <div class="recent_heading">
+                            <h4>Users</h4>
+                        </div>
+                    </div>
+                    <div class="inbox_chat" id="users">
+                    </div>
+                </div>
+                <div class="mesgs">
+                    <div class="msg_history" id="messages">
+                    </div>
+                    <div class="type_msg">
+                        <div class="input_msg_write">
+                            <form onsubmit="return sendMessage();" style="display: none;" id="form-send-message">
+                                <input id="message" type="text" class="write_msg" placeholder="Type a message" />
+                                <button class="msg_send_btn" type="submit"><i class="fa fa-paper-plane-o"
+                                        aria-hidden="true"></i></button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        var server = "http://localhost:3000"||"https://fypmanagementsystemheroku.herokuapp.com";
+        var io = io(server);
+        var myName = "<%=username%>";
+        var otherPersonName = "";
+        // io.emit("user_connected", myName);
+        function sendMessage() {
+            var message = document.getElementById("message").value;
+            io.emit("send_message", {
+                "sender": myName,
+                "receiver": otherPersonName,
+                "message": message
+            });
+
+            var html = "";
+            html += '<div class="outgoing_msg">';
+            html += '<div class="sent_msg">';
+            html += '<p>' + message + '</p>';
+            html += '</div>';
+            html += '</div>';
+            document.getElementById("messages").innerHTML += html;
+
+            return false;
+        }
+
+        io.on("message_received", function (data) {
+
+            var html = "";
+            html += '<div class="incoming_msg">';
+            html += '<div class="incoming_msg_img"> <img src="/img/spiderman.jpg" alt="sunil"> </div>';
+            html += '<div class="received_msg">';
+            html += '<div class="received_withd_msg">';
+            html += '<p>' + data.message + '</p>';
+            html += '</div>';
+            html += '</div>';
+            html += '</div>';
+
+            document.getElementById("messages").innerHTML += html;
+            document.getElementById("form-send-message").style.display = "";
+            document.getElementById("messages").style.display = "";
+            otherPersonName = data.sender;
+
+        });
+
+        function onUserSelected(self) {
+            document.getElementById("form-send-message").style.display = "";
+            document.getElementById("messages").style.display = "";
+            document.getElementById("messages").innerHTML = "";
+            otherPersonName = self.getAttribute("data-username");
+            $.ajax({
+                url: server + "/get_messages",
+                method: "POST",
+                data: {
+                    "sender": myName,
+                    "receiver": otherPersonName
+                },
+                success: function (response) {
+                    console.log(response);
+                    var messages = JSON.parse(response);
+                    var html = "";
+
+                    for (var i = 0; i < messages.length; i++) {
+
+                        if (messages[i].sender == myName) {
+                            html += '<div class="outgoing_msg">';
+                            html += '<div class="sent_msg">';
+                            html += '<p>' + messages[i].message + '</p>';
+                            html += '</div>';
+                            html += '</div>';
+                        } else {
+                            html += '<div class="incoming_msg">';
+                            html += '<div class="incoming_msg_img"> <img src="/img/spiderman.jpg" alt="sunil"> </div>';
+                            html += '<div class="received_msg">';
+                            html += '<div class="received_withd_msg">';
+                            html += '<p>' + messages[i].message + '</p>';
+                            html += '</div>';
+                            html += '</div>';
+                            html += '</div>';
+                        }
+
+                    }
+
+                    document.getElementById("messages").innerHTML = html;
+                }
+            });
+        }
+        $.ajax({
+            url: server + "/get_users",
+            method: "GET",
+            success: function (response) {
+                console.log(response);
+                var users = JSON.parse(response);
+                var html = "";
+                console.log(users.length);
+
+                for (var i = 0; i < users.length; i++) {
+
+                    io.emit("user_connected", users[i].username);
+                }
+            }
+        });
+        io.on("user_connected", function (username) {
+            var html = "";
+            html += '<div class="chat_list" data-username="' + username + '" onclick="onUserSelected(this);">';
+            html += '<div class="chat_people">';
+            html += '<div class="chat_img"> <img src="/img/spiderman.jpg" alt="user"> </div>';
+            html += '<div class="chat_ib">';
+            html += '<h5>' + username + '</h5>';
+            html += '</div>';
+            html += '</div>';
+            html += '</div>';
+            document.getElementById("users").innerHTML += html;
+        });
+    </script>
+
+    <link rel="stylesheet" href="/chat.css">
+
+</body>
+
+</html>
