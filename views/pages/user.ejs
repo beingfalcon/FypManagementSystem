@@ -129,6 +129,19 @@ input:checked ~ label:hover ~ label {
             <input type="submit" value="Post">
         </form>
     </div>
+    <br>
+    <div class="col-md-3">
+        <br>
+        <form name="notifForm" action="/sent" method="post">
+            <input type="hidden" value="<%= user.id %>" id="id" name="id">
+            <input type="hidden" value="<%= user.email %>" id="candidateEmail" name="candidateEmail">
+            <input type="hidden" value="<%= user.fname %>" id="candidateFirstName" name="candidateFirstName">
+            <input type="hidden" value="<%= user.lname %>" id="candidateLastName" name="candidateLastName">
+            <input type="text" id="officialPosition" name="officialPosition" placeholder="Enter your position...">
+            <input type="text" id="officialFullName" name="officialFullName" placeholder="Enter your Full Name...">
+            <input type="submit" value="Send Notification">
+        </form>
+    </div>
 </div>
 
 <script>
@@ -189,7 +202,7 @@ input:checked ~ label:hover ~ label {
     function hideRatings() {
         document.getElementById("ratings").innerHTML = "";
     }
-    
+
     function getReplies(id) {
         const xhttp = new XMLHttpRequest();
         xhttp.onload = function () {

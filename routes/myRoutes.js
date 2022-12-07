@@ -3,6 +3,7 @@ const router = express.Router()
 var mysql = require("mysql");
 const util = require("util");
 const pdf = require("html-pdf");
+const path = require('path');
 const fs = require("fs");
 const bodyparser = require("body-parser");
 const cookieParser = require("cookie-parser");
@@ -56,6 +57,36 @@ router.use(
   })
 )
 myStore.sync();
+
+router.post('/sent',(req, res) => {
+  //Gets the inputs from the web client
+  const {
+    id,
+    officialPosition,
+    officialFullName,
+    candidateEmail,
+    candidateFirstName,
+    candidateLastName,
+  } = req.body;
+  const mailOptions = {
+    from: 'rameezahmednode@gmail.com',
+    to: candidateEmail,
+    subject: `Email for meeting with ${officialPosition}: ${officialFullName}`,
+    text: "This is my First Email using NodeJS",
+    html: `<p><b>Dear ${candidateFirstName} ${candidateLastName}</b></p>
+          <p>You are requested to meet ${officialPosition}: ${officialFullName}</p>
+    `,
+  };
+  transporter.sendMail(mailOptions, function (error, info) {
+    if (error) {
+      console.log(error);
+    }
+    else {
+      console.log("Email Sent: " + info.response);
+      res.redirect(`/user?id=${id}`);
+    }
+  });
+});
 router.get("/UsersORM", async (req, res) => {
   const listOfUsers = await Users.findAll({ raw: true });
   res.json(listOfUsers);
