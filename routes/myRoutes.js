@@ -1115,4 +1115,4 @@ router.post('/api/users/updateUser', function (req, res) {
     }
   })
 });
-module.exports = router
+module.exports = router,myStore
