@@ -1,5 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-    const userReviews = sequelize.define('userReview', {
+    const supervisorComments = sequelize.define('supervisorComments', {
         id: {
             type: DataTypes.INTEGER(11),
             allowNull: false,
@@ -10,14 +10,10 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING(30),
             allowNull: false,
         },
-        review: {
+        comment: {
             type: DataTypes.STRING(100),
-            allowNull: true,
+            allowNull: false,
         },
-        ratings:{
-            type: DataTypes.INTEGER(11),
-            allowNull:true,
-        }
     })
-    return userReviews;
+    return supervisorComments;
 }

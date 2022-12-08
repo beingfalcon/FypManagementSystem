@@ -27,6 +27,10 @@ let commentsReply = db.commentsReply;
 let userReview = db.userReviews;
 let userComments = db.userComments;
 let message = db.Messages;
+const Supervisors = db.Supervisors;
+const supervisorReview=db.supervisorReview
+const supervisorComment=db.supervisorComment
+const supervisorCommentReply=db.supervisorCommentsReply
 app.post("/get_messages", async function (req, res) {
 	let messages = await Messages.findAll({ raw: true, where: { sender: req.body.sender, reciever: req.body.receiver } })
 	res.send(JSON.stringify(messages));
@@ -71,6 +75,22 @@ AdminJS.registerAdapter({
 const adminOptions = {
 	// We pass Category to `resources`
 	databases: [sequelize],
+}
+const supervisorNavigation ={
+	name: 'Supervisor',
+	icon: 'User',
+}
+const supervisorReviewNavigation={
+	name: 'Supervisor Review',
+	icon: 'Chat'
+}
+const supervisorCommentNavigation={
+	name: 'Supervisor Comment',
+	icon: 'Chat'
+}
+const supervisorCommentReplyNavigation={
+	name: 'Supervisor Comments Reply',
+	icon: 'Chat'
 }
 const usersNavigation = {
 	name: 'Users',
@@ -120,7 +140,27 @@ const admin = new AdminJS({
 			options: {
 				navigation: messageNavigation, usersNavigation,
 			},
-		}
+		},
+		{
+			resource: Supervisors, options: {
+				navigation: supervisorNavigation,
+			}
+		},
+		{
+			resource: supervisorComment, options: {
+				navigation: supervisorCommentNavigation,
+			}
+		},
+		{
+			resource: supervisorReview, options: {
+				navigation: supervisorReviewNavigation,
+			}
+		},
+		{
+			resource: supervisorCommentReply, options: {
+				navigation: supervisorCommentReplyNavigation,
+			}
+		},
 	]
 })
 const adminRouter = AdminJSExpress.buildRouter(admin)

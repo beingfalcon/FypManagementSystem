@@ -27,18 +27,10 @@ const session = db.session;
 const sequelize = db.sequelize
 const SequelizeStore = db.SequelizeStore;
 const sessiontble = db.sessiontble;
-// function extendDefaultFields(defaults, session) {
-//   return {
-//     data: defaults.data,
-//     expires: defaults.expires,
-//     userId: session.userId,
-//   };
-// }
-// var store = new SequelizeStore({
-//   db: sequelize,
-//   table: "Session",
-//   extendDefaultFields: extendDefaultFields,
-// });
+const Supervisors = db.Supervisors;
+const supervisorReview=db.supervisorReview
+const supervisorComment=db.supervisorComment
+const supervisorCommentReply=db.supervisorCommentsReply
 var myStore = new SequelizeStore({
   db: sequelize,
   checkExpirationInterval: 15 * 60 * 1000,
@@ -58,22 +50,21 @@ router.use(
 )
 myStore.sync();
 
-router.post('/sent',(req, res) => {
+router.post('/sent', (req, res) => {
   //Gets the inputs from the web client
   const {
     id,
     officialPosition,
     officialFullName,
     candidateEmail,
-    candidateFirstName,
-    candidateLastName,
+    candidateName,
   } = req.body;
   const mailOptions = {
     from: 'rameezahmednode@gmail.com',
     to: candidateEmail,
     subject: `Email for meeting with ${officialPosition}: ${officialFullName}`,
     text: "This is my First Email using NodeJS",
-    html: `<p><b>Dear ${candidateFirstName} ${candidateLastName}</b></p>
+    html: `<p><b>Dear ${candidateName} </b></p>
           <p>You are requested to meet ${officialPosition}: ${officialFullName}</p>
     `,
   };
@@ -366,11 +357,31 @@ router.post('/user/addCommentReply?:userID', [redirectLogin, redirectUnVerifiedU
   await commentsReply.create({ reply: comment, username: username, userCommentId: commentID });
   res.redirect(`/user?id=${userID}`);
 })
+router.post('/supervisors/supervisor/addCommentReply?:supervisorID', [redirectLogin, redirectUnVerifiedUser], async function (req, res) {
+  const comment = req.body.reply;
+  const commentID = req.body.id;
+  const username = req.session.username;
+  const userID = req.query.supervisorID;
+  await supervisorCommentReply.create({ reply: comment, username: username, supervisorCommentId: commentID });
+  res.redirect(`/supervisors/supervisor?id=${userID}`);
+})
 router.get('/user/getCommentReply?:id', [redirectLogin, redirectUnVerifiedUser], async function (req, res) {
   let id = req.query.id;
   console.log(id)
   const reply = await commentsReply.findAll({
     raw: true, where: { userCommentId: id },
+    // Add order conditions here....
+    order: [
+      ['updatedAt', 'DESC'],
+    ],
+  });
+  res.json(reply)
+});
+router.get('/supervisors/supervisor/getCommentReply?:id', [redirectLogin, redirectUnVerifiedUser], async function (req, res) {
+  let id = req.query.id;
+  console.log(id)
+  const reply = await supervisorCommentReply.findAll({
+    raw: true, where: { supervisorCommentId: id },
     // Add order conditions here....
     order: [
       ['updatedAt', 'DESC'],
@@ -388,6 +399,18 @@ router.post('/user/addComment', [redirectLogin, redirectUnVerifiedUser], async f
   const username = req.body.username;
   await userComments.create({ comment: comment, username: username, userregId: cID });
   res.redirect(`/user?id=${userID}`);
+})
+router.post('/supervisors/supervisor/addComment', [redirectLogin, redirectUnVerifiedUser], async function (req, res) {
+  const comment = req.body.comment;
+  const userID = req.body.id;
+  const email=req.body.email;
+  const currentUser = req.session.id;
+  let cUser = await Supervisors.findAll({ raw: true, where: { email: email } })
+  const cID = cUser[0].id;
+  console.log(cUser[0].id);
+  const username = req.body.username;
+  await supervisorComment.create({ comment: comment, username: username, supervisorRegId: cID });
+  res.redirect(`/supervisors/supervisor?id=${userID}`);
 })
 router.post('/user/addRatings', [redirectLogin, redirectUnVerifiedUser], async function (req, res) {
   let rating = 0;
@@ -411,6 +434,29 @@ router.post('/user/addRatings', [redirectLogin, redirectUnVerifiedUser], async f
   const username = req.body.username;
   await userReviews.create({ username: username, review: review, ratings: rating, userregId: userID });
   res.redirect(`/user?id=${userID}`);
+})
+router.post('/supervisors/supervisor/addRatings', [redirectLogin, redirectUnVerifiedUser], async function (req, res) {
+  let rating = 0;
+  if (req.body.rg1 != undefined) {
+    rating = 5;
+  }
+  else if (req.body.rg2 != undefined) {
+    rating = 4;
+  }
+  else if (req.body.rg3 != undefined) {
+    rating = 3;
+  }
+  else if (req.body.rg4 != undefined) {
+    rating = 2;
+  }
+  else if (req.body.rg5 != undefined) {
+    rating = 1;
+  }
+  const review = req.body.review;
+  const userID = req.body.id;
+  const username = req.body.username;
+  await supervisorReview.create({ username: username, review: review, ratings: rating, supervisorRegId: userID });
+  res.redirect(`/supervisors/supervisor?id=${userID}`);
 })
 router.get('/users', [redirectLogin, redirectUnVerifiedUser], async function (req, res) {
   {
@@ -481,6 +527,27 @@ router.get('/users', [redirectLogin, redirectUnVerifiedUser], async function (re
     // });
   }
 });
+router.get('/user?:id', [redirectLogin], async function (req, res) {
+  let id = req.query.id;
+  if (typeof (id) === undefined) {
+    id = req.params.id
+  }
+  const user = await Users.findOne({ raw: true, where: { id: id } });
+  const userRtg = await userReviews.findAll({ raw: true, where: { userRegId	: id } });
+  let sum = 0;
+  for (let i = 0; i < userRtg.length; i++) {
+    sum += userRtg[i].ratings;
+  }
+  sum /= userRtg.length
+  let role = req.session.role;
+  let username = req.session.username;
+  res.render('pages/user', {
+    user: user,
+    role: role,
+    username: username,
+    rating: sum
+  })
+})
 router.get('/user/getComments?:id', [redirectLogin, redirectUnVerifiedUser], async function (req, res) {
   let id = req.query.id;
   const comments = await userComments.findAll({
@@ -503,84 +570,91 @@ router.get('/user/getRatings?:id', [redirectLogin, redirectUnVerifiedUser], asyn
   });
   res.json(comments)
 });
-router.get('/user?:id', [redirectLogin], async function (req, res) {
+
+router.get('/supervisors/supervisor/getComments?:id', [redirectLogin, redirectUnVerifiedUser], async function (req, res) {
+  let id = req.query.id;
+  const comments = await supervisorComment.findAll({
+    raw: true, where: { supervisorRegId: id },
+    // Add order conditions here....
+    order: [
+      ['updatedAt', 'DESC'],
+    ],
+  });
+  res.json(comments)
+});
+router.get('/supervisors/supervisor/getRatings?:id', [redirectLogin, redirectUnVerifiedUser], async function (req, res) {
+  let id = req.query.id;
+  const ratings = await supervisorReview.findAll({
+    raw: true, where: { supervisorRegId: id },
+    // Add order conditions here....
+    order: [
+      ['updatedAt', 'DESC'],
+    ],
+  });
+  res.json(comments)
+});
+router.get('/supervisors/supervisor?:id',redirectLogin,async function(req,res){
   let id = req.query.id;
   if (typeof (id) === undefined) {
     id = req.params.id
   }
-  const user = await Users.findOne({ raw: true, where: { id: id } });
-  const usrRtgs = await userReviews.findAll({ raw: true, where: { userregId: id } });
+  const supervisor = await Supervisors.findAll({ raw: true, where: { id: id } });
+  console.log(supervisor);
+  const supervisorRtg = await supervisorReview.findAll({ raw: true, where: { supervisorRegId: id } });
   let sum = 0;
-  for (let i = 0; i < usrRtgs.length; i++) {
-    sum += usrRtgs[i].ratings;
+  for (let i = 0; i < supervisorRtg.length; i++) {
+    sum += supervisorRtg[i].ratings;
   }
-  sum /= usrRtgs.length
+  sum /= supervisorRtg.length
   let role = req.session.role;
   let username = req.session.username;
-  res.render('pages/user', {
-    user: user,
+  res.render('pages/supervisor', {
+    supervisor: supervisor,
     role: role,
     username: username,
     rating: sum
   })
-  // let Query = `select * from userregs where id=${id}`;
-  // mysqlConnection.query(Query, (err, user, fields) => {
-  //   let role = req.session.role
-  //   let username = req.session.username
-  //   if (!err) {
-  //     res.render('pages/user', {
-  //       user: user,
-  //       role: role,
-  //       username: username,
-  //     })
-  //   }
-  //   else console.log(err)
-  // })
 })
+// router.get('/supervisor?:id', [redirectLogin], async function (req, res) {
+//   let id = req.query.id;
+//   if (typeof (id) === undefined) {
+//     id = req.params.id
+//   }
+//   const supervisor = await Supervisors.findOne({ raw: true, where: { id: id } });
+//   const supRtg = await supervisorReview.findAll({ raw: true, where: { supervisorRegId	: id } });
+//   let sum = 0;
+//   for (let i = 0; i < supRtg.length; i++) {
+//     sum += supRtg[i].ratings;
+//   }
+//   sum /= supRtg.length
+//   let role = req.session.role;
+//   let username = req.session.username;
+//   res.render('pages/supervisor', {
+//     supervisor: supervisor,
+//     role: role,
+//     username: username,
+//     rating: sum
+//   })
+// })
 
-router.get('/supervisors', function (req, res) {
-  console.log(req.query.search)
-  let userQuery = ""
-  if (req.query.search === undefined) {
-    userQuery = `SELECT COUNT(*) FROM supervisorReg`;
-  }
-  else {
-    let name = req.query.search;
-    userQuery = `SELECT COUNT(*) FROM supervisorReg where name LIKE '%${name}%'`;
-  }
-  mysqlConnection.query(userQuery, (err, totalSupervisors, fields) => {
-    let supervisorCount = totalSupervisors[0]["COUNT(*)"];
-    let page = req.query.page ? req.query.page : 1;
-    let supervisorsPerPage = req.query.supervisorsPerPage ? req.query.supervisorsPerPage : 2;
-    let startLimit = (page - 1) * supervisorsPerPage;
-    let totalPages = Math.ceil(supervisorCount / supervisorsPerPage);
-
-    //res.send(`${movieCount}`);
-    let selectQuery = ""
-    console.log(req.query.search)
-    if (req.query.search === undefined) {
-      selectQuery = `SELECT * FROM supervisorReg 
-      LIMIT ${startLimit}, ${supervisorsPerPage}`;
-    }
-    else {
-      let name = req.query.search;
-      console.log(name)
-      selectQuery = `SELECT * FROM supervisorReg where name LIKE '%${name}%' LIMIT ${startLimit}, ${supervisorsPerPage}`;
-    }
-
-    mysqlConnection.query(selectQuery, (err, supervisors, fields) => {
-      if (!err) {
-        console.log(supervisors)
-        res.render("pages/supervisor", {
-          data: supervisors,
-          supervisorCount,
-          page,
-          totalPages,
-          supervisorsPerPage,
-        });
-      }
-      else console.log(err);
-    });
+router.get('/supervisors', async function (req, res) {
+  const allSupervisors = await Supervisors.findAll({ raw: true });
+  let supervisorCount = allSupervisors.length;
+  let page = req.query.page ? req.query.page : 1;
+  let supervisorsPerPage = req.query.supervisorsPerPage ? req.query.supervisorsPerPage : 2;
+  let startLimit = (page - 1) * supervisorsPerPage;
+  let totalPages = Math.ceil(supervisorCount / supervisorsPerPage);
+  const supervisors = await Supervisors.findAll({ raw: true, offset: startLimit, limit: supervisorsPerPage });
+  let user = (req.query.loggedinUser) ? req.query.loggedinUser : req.session.username;
+  let role = req.session.role;
+  res.render("pages/supervisors", {
+    data: supervisors,
+    supervisorCount,
+    page,
+    totalPages,
+    supervisorsPerPage,
+    user: user,
+    role: role,
   });
 });
 
@@ -607,7 +681,7 @@ router.get('/users/insertData', redirectInvalidLogin, function (req, res) {
 router.get('/users/registerUser', function (req, res) {
   res.render('pages/registerUser')
 })
-router.get('/supervisors/registerSupervisor', function (req, res) {
+router.get('/supervisors/registerSupervisor', [redirectLogin], function (req, res) {
   res.render('pages/registerSupervisor')
 })
 
@@ -640,62 +714,34 @@ router.get('/users/updateUser', redirectInvalidLogin, async function (req, res) 
 
   // });
 })
-router.get('/supervisors/updateSupervisor', function (req, res) {
+router.get('/supervisors/updateSupervisor', [redirectLogin], async function (req, res) {
 
   // create Request object
 
   var id = req.query.id
-  mysqlConnection.query(`select * from supervisorReg WHERE  id= ${id}`, function (err, recordset) {
-
-    if (err) {
-      console.log(err);
-    }
-
-    // send records as a response
-    else {
-      let jsonString = JSON.stringify(recordset)
-      let JSONdata = JSON.parse(jsonString);
-      data = recordset
-      console.log(data)
-      res.render('pages/updateSupervisor', {
-        data: data,
-        id: id,
-      })
-    }
-  });
+  var recordset = await findAll({ raw: true, where: { id: id } });
+  res.render('pages/updateSupervisor', {
+    data: recordset,
+    id: id,
+  })
 })
-router.get('/users/printUsers', function (req, res) {
-  {
+router.get('/users/printUsers', async function (req, res) {
 
-    mysqlConnection.query('select * from userregs', function (err, recordset) {
-
-      if (err) {
-        console.log(err);
-      }
-
-      // send records as a response
-      else {
-        let jsonString = JSON.stringify(recordset)
-        let JSONdata = JSON.parse(jsonString);
-        data = JSONdata.recordset
-        console.log(data)
-        res.render('pages/users', {
-          data: data
-        }, function (err, html) {
-          pdf
-            .create(html, options)
-            .toFile("uploads/allUsers.pdf", function (err, result) {
-              if (err) return console.log(err);
-              else {
-                var allUsersPdf = fs.readFileSync("uploads/allUsers.pdf");
-                res.header("content-type", "application/pdf");
-                res.send(allUsersPdf);
-              }
-            })
-        });
-      }
-    });
-  }
+  let recordset = await Users.findAll({ raw: true })
+  res.render('pages/users', {
+    data: data
+  }, function (err, html) {
+    pdf
+      .create(html, options)
+      .toFile("uploads/allUsers.pdf", function (err, result) {
+        if (err) return console.log(err);
+        else {
+          var allUsersPdf = fs.readFileSync("uploads/allUsers.pdf");
+          res.header("content-type", "application/pdf");
+          res.send(allUsersPdf);
+        }
+      })
+  });
 })
 router.get('/api/users', async function (req, res) {
   {
@@ -723,7 +769,7 @@ router.get('/api/users', async function (req, res) {
 })
 router.post('/users/delete', redirectInvalidLogin, async function (req, res) {
   var id = req.body.id
-  Users.destroy({
+  await Users.destroy({
     where: {
       id: id
     }
@@ -743,43 +789,35 @@ router.post('/users/delete', redirectInvalidLogin, async function (req, res) {
 
   // });
 })
-router.post('/supervisors/delete', function (req, res) {
+router.post('/supervisors/delete', [redirectLogin], async function (req, res) {
   var id = req.body.id
-  console.log(id);
-  var Query = `DELETE FROM supervisorReg WHERE id=${id}`
-  mysqlConnection.query(Query, function (err, recordset) {
-
-    if (err) {
-      console.log(err);
+  await Supervisors.destroy({
+    where: {
+      id: id
     }
-
-    // send records as a response
-    else {
-      res.redirect('/supervisors');
-    }
-
   });
+  res.redirect('/supervisors');
 })
-router.post('/api/users/delete', function (req, res) {
-  var id = req.body.id
-  console.log(id);
-  var Query = `DELETE FROM userregs WHERE id=${id}`
-  mysqlConnection.query(Query, function (err, recordset) {
+// router.post('/api/users/delete', function (req, res) {
+//   var id = req.body.id
+//   console.log(id);
+//   var Query = `DELETE FROM userregs WHERE id=${id}`
+//   mysqlConnection.query(Query, function (err, recordset) {
 
-    if (err) {
-      console.log(err);
-    }
+//     if (err) {
+//       console.log(err);
+//     }
 
-    // send records as a response
-    else {
-      res.json({
-        recordset: recordset
-      }).sendStatus(201);
-    }
+//     // send records as a response
+//     else {
+//       res.json({
+//         recordset: recordset
+//       }).sendStatus(201);
+//     }
 
-  });
+//   });
 
-})
+// })
 function generateCode() {
   return Math.floor(100000 + Math.random() * 900000);
 }
@@ -835,7 +873,7 @@ router.post('/users/login/verify', [redirectLogin, redirectVerifiedUser], async 
   // })
 
 })
-router.post('/users/registerUser', async function (req, res) {
+router.post('/users/registerUser', [redirectLogin], async function (req, res) {
 
   // create Request object
 
@@ -850,7 +888,7 @@ router.post('/users/registerUser', async function (req, res) {
   var password = req.body.password
   var role = req.body.role
   let code = generateCode();
-  const jane = await Users.create({ fname: fname, lname: lname, birthday: birthday, username: username, role: role, email: email, phone: phone, profilePic: profilePic, country: country, password: password, verificationCode: code, createdAt: sequelize.fn('NOW'), updatedAt: sequelize.fn('NOW') });
+  const user = await Users.create({ fname: fname, lname: lname, birthday: birthday, username: username, role: role, email: email, phone: phone, profilePic: profilePic, country: country, password: password, verificationCode: code, createdAt: sequelize.fn('NOW'), updatedAt: sequelize.fn('NOW') });
   if (body(email).isEmail()) {
     res.render("pages/verifyuser", {
       username, code
@@ -917,7 +955,7 @@ router.post('/users/registerUser', async function (req, res) {
 
   // });
 })
-router.post('/supervisors/registerSupervisor', function (req, res) {
+router.post('/supervisors/registerSupervisor', [redirectLogin], async function (req, res) {
 
   // create Request object
 
@@ -932,52 +970,57 @@ router.post('/supervisors/registerSupervisor', function (req, res) {
   var groups = req.body.groups
   var password = req.body.password
   var profilePic = req.body.profilePic
-  var Query = `INSERT INTO supervisorReg (name,dob,gender,email,phone,country,department,experties,groups,password,profilePic) VALUES('${name}','${dob}','${gender}','${email}','${phone}','${country}','${department}','${experties}',${groups},'${password}','${profilePic}')`
-  mysqlConnection.query(Query, function (err, recordset) {
-
-    if (err) {
-      console.log(err);
-    }
-
-    // send records as a response
-    else {
-      res.redirect('/supervisors');
-    }
-
+  const supervisor = await Supervisors.create({
+    name: name, dob: dob, gender: gender, email: email, phone: phone, country: country, department: department, profilePic: profilePic, experties: experties,
+    password: password, groups: groups, createdAt: sequelize.fn('NOW'), updatedAt: sequelize.fn('NOW')
   });
+  res.redirect('/supervisors');
+  // var Query = `INSERT INTO supervisorReg (name,dob,gender,email,phone,country,department,experties,groups,password,profilePic) VALUES('${name}','${dob}','${gender}','${email}','${phone}','${country}','${department}','${experties}',${groups},'${password}','${profilePic}')`
+  // mysqlConnection.query(Query, function (err, recordset) {
+
+  //   if (err) {
+  //     console.log(err);
+  //   }
+
+  //   // send records as a response
+  //   else {
+  //     res.redirect('/supervisors');
+  //   }
+
+  // });
 })
-router.post('/api/users/registerUser', function (req, res) {
+// router.post('/api/users/registerUser', function (req, res) {
 
-  // create Request object
+//   // create Request object
 
-  var fname = req.body.fname
-  var lname = req.body.lname
-  var birthday = req.body.birthday
-  var username = req.body.username
-  var email = req.body.email
-  var phone = req.body.phone
-  var country = req.body.country
-  var password = req.body.password
-  var profilePic = req.body.profilePic
+//   var fname = req.body.fname
+//   var lname = req.body.lname
+//   var birthday = req.body.birthday
+//   var username = req.body.username
+//   var email = req.body.email
+//   var phone = req.body.phone
+//   var country = req.body.country
+//   var password = req.body.password
+//   var profilePic = req.body.profilePic
 
-  // query to the database and insert the records
+//   // query to the database and insert the records
 
-  var Query = `INSERT INTO userregs (fname,lname,birthday,username,email,phone,country,password,profilePic) VALUES('${fname}','${lname}','${birthday}','${username}','${email}','${phone}','${country}','${password}','${profilePic}')`
-  mysqlConnection.query(Query, function (err, recordset) {
+//   var Query = `INSERT INTO userregs (fname,lname,birthday,username,email,phone,country,password,profilePic) VALUES('${fname}','${lname}','${birthday}','${username}','${email}','${phone}','${country}','${password}','${profilePic}')`
+//   mysqlConnection.query(Query, function (err, recordset) {
 
-    if (err) {
-      console.log(err);
-    }
+//     if (err) {
+//       console.log(err);
+//     }
 
-    // send records as a response
-    else {
-      res.json({
-        recordset: recordset
-      }).sendStatus(201);
-    }
+//     // send records as a response
+//     else {
+//       res.json({
+//         recordset: recordset
+//       }).sendStatus(201);
+//     }
 
-  });
-})
+//   });
+// })
 router.post('/users/updateUser', redirectInvalidLogin, async function (req, res) {
 
   // create Request object
@@ -1008,7 +1051,7 @@ router.post('/users/updateUser', redirectInvalidLogin, async function (req, res)
     })
   }
 })
-router.post('/supervisors/updateSupervisor', function (req, res) {
+router.post('/supervisors/updateSupervisor', [redirectLogin], async function (req, res) {
 
   // create Request object
   var id = req.body.id
@@ -1024,95 +1067,120 @@ router.post('/supervisors/updateSupervisor', function (req, res) {
   var password = req.body.password
   var profilePic = req.body.profilePic
   var oldpassword = req.body.oldpassword
-  mysqlConnection.query(`select (password) from supervisorReg where id=${id}`, function (err, recordset) {
-    if (err) {
-      console.log(err);
+  let recordset = await Supervisors.findAll({ raw: true, where: { id: id } });
+
+  data = recordset
+  if (oldpassword === undefined) {
+    var error = "Invalid Old Password"
+    res.render("/supervisors/updateSupervisor?id=" + id, {
+      error: error
+    })
+  }
+  else {
+    if (data[0].password == oldpassword) {
+      const user = await Users.update(
+        { name: name, dob: dob, gender: gender, email: email, phone: phone, country: country, department: department, experties: experties, groups: groups, password: password, profilePic: profilePic, createdAt: sequelize.fn('NOW'), updatedAt: sequelize.fn('NOW') },
+        { where: { id: id } }
+      )
+      res.redirect('/supervisors');
     }
     else {
-      data = recordset
-
-      console.log(data[0].password)
-      if (oldpassword === undefined) {
-        var error = "Invalid Old Password"
-        res.render("/supervisors/updateSupervisor?id=" + id, {
-          error: error
-        })
-      }
-      else {
-        if (data[0].password == oldpassword) {
-          var Query = `UPDATE supervisorReg SET name = '${name}', dob='${dob}', gender='${gender}', email='${email}', phone='${phone}', country='${country}', department='${department}',experties='${experties}',groups='${groups}',password='${password}', profilePic='${profilePic}' WHERE id=${id}`
-          mysqlConnection.query(Query, function (err, recordset) {
-
-            if (err) {
-              console.log(err);
-            }
-
-            // send records as a response
-            else {
-              res.redirect('/supervisors');
-            }
-
-          });
-        }
-        else {
-          var error = "Invalid Old Password"
-          res.render("/supervisors/updateSupervisor?id=" + id, {
-            error: error
-          })
-        }
-      }
+      var error = "Invalid Old Password"
+      res.render("/supervisors/updateSupervisor?id=" + id, {
+        error: error
+      })
     }
-  })
+  }
+
+  // mysqlConnection.query(`select (password) from supervisorReg where id=${id}`, function (err, recordset) {
+  //   if (err) {
+  //     console.log(err);
+  //   }
+  //   else {
+  //     data = recordset
+
+  //     console.log(data[0].password)
+  //     if (oldpassword === undefined) {
+  //       var error = "Invalid Old Password"
+  //       res.render("/supervisors/updateSupervisor?id=" + id, {
+  //         error: error
+  //       })
+  //     }
+  //     else {
+  //       if (data[0].password == oldpassword) {
+  //         var Query = `UPDATE supervisorReg SET name = '${name}', dob='${dob}', gender='${gender}', email='${email}', phone='${phone}', country='${country}', department='${department}',experties='${experties}',groups='${groups}',password='${password}', profilePic='${profilePic}' WHERE id=${id}`
+  //         mysqlConnection.query(Query, function (err, recordset) {
+
+  //           if (err) {
+  //             console.log(err);
+  //           }
+
+  //           // send records as a response
+  //           else {
+  //             res.redirect('/supervisors');
+  //           }
+
+  //         });
+  //       }
+  //       else {
+  //         var error = "Invalid Old Password"
+  //         res.render("/supervisors/updateSupervisor?id=" + id, {
+  //           error: error
+  //         })
+  //       }
+  //     }
+  //   }
+  // })
 })
-router.post('/api/users/updateUser', function (req, res) {
+// router.post('/api/users/updateUser', function (req, res) {
 
-  // create Request object
-  var id = req.body.id
-  var fname = req.body.fname
-  var lname = req.body.lname
-  var birthday = req.body.birthday
-  var username = req.body.username
-  var email = req.body.email
-  var phone = req.body.phone
-  var country = req.body.country
-  var password = req.body.password
-  var oldpassword = req.body.oldpassword
+//   // create Request object
+//   var id = req.body.id
+//   var fname = req.body.fname
+//   var lname = req.body.lname
+//   var birthday = req.body.birthday
+//   var username = req.body.username
+//   var email = req.body.email
+//   var phone = req.body.phone
+//   var country = req.body.country
+//   var password = req.body.password
+//   var oldpassword = req.body.oldpassword
 
-  // query to the database and insert the records
-  // (fname,lname,birthday,username,email,phone,country,password)
-  mysqlConnection.query(`select (password) from userregs where id=${id}`, function (err, recordset) {
-    if (err) {
-      console.log(err);
-    }
-    else {
-      let jsonString = JSON.stringify(recordset)
-      let JSONdata = JSON.parse(jsonString);
-      data = JSONdata.recordset
-      console.log(data)
-      if (data[0].password == oldpassword) {
-        var Query = `UPDATE userregs SET fname = '${fname}', lname='${lname}', birthday='${birthday}', username='${username}', email='${email}', phone='${phone}', country='${country}',password='${password}' WHERE id=${id}`
-        request.query(Query, function (err, recordset) {
+//   // query to the database and insert the records
+//   // (fname,lname,birthday,username,email,phone,country,password)
+//   mysqlConnection.query(`select (password) from userregs where id=${id}`, function (err, recordset) {
+//     if (err) {
+//       console.log(err);
+//     }
+//     else {
+//       let jsonString = JSON.stringify(recordset)
+//       let JSONdata = JSON.parse(jsonString);
+//       data = JSONdata.recordset
+//       console.log(data)
+//       if (data[0].password == oldpassword) {
+//         var Query = `UPDATE userregs SET fname = '${fname}', lname='${lname}', birthday='${birthday}', username='${username}', email='${email}', phone='${phone}', country='${country}',password='${password}' WHERE id=${id}`
+//         request.query(Query, function (err, recordset) {
 
-          if (err) {
-            console.log(err);
-          }
+//           if (err) {
+//             console.log(err);
+//           }
 
-          // send records as a response
-          else {
-            res.status(201).json({
-              recordset: recordset
-            });
-          }
+//           // send records as a response
+//           else {
+//             res.status(201).json({
+//               recordset: recordset
+//             });
+//           }
 
-        });
-      }
-      else {
-        var error = "Invalid Old Password"
-        res.render("/users/updateUser?id=" + id, {
-          error: error
-        })
-      }
-    }
-  })
-});
-module.exports = router,myStore
+//         });
+//       }
+//       else {
+//         var error = "Invalid Old Password"
+//         res.render("/users/updateUser?id=" + id, {
+//           error: error
+//         })
+//       }
+//     }
+//   })
+// });
+module.exports = router, myStore

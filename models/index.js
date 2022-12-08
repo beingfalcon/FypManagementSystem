@@ -41,17 +41,27 @@ db.session = session;
 db.SequelizeStore = SequelizeStore;
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
+db.supervisorCommentsReply=require("./supervisorCommentsReply")(sequelize,Sequelize);
+db.supervisorComment=require("./supervisorComments")(sequelize,Sequelize);
+db.supervisorReview=require("./supervisorReview")(sequelize,Sequelize);
+db.Supervisors=require("./supervisors")(sequelize,Sequelize);
 db.Messages=require("./messages")(sequelize,Sequelize);
 db.userComments = require("./userComments")(sequelize, Sequelize);
 db.Users = require("./users")(sequelize, Sequelize);
 db.userReviews = require("./userReview")(sequelize, Sequelize);
 db.commentsReply = require("./commentsReply")(sequelize, Sequelize);
+db.Supervisors.hasMany(db.supervisorComment,{onDelete:"cascade"});
+db.Supervisors.hasMany(db.supervisorReview,{onDelete:"cascade"});
 db.Users.hasMany(db.userReviews, { onDelete: "cascade" })
 db.Users.hasMany(db.userComments, { onDelete: "cascade" })
+db.supervisorComment.belongsTo(db.Supervisors)
+db.supervisorReview.belongsTo(db.Supervisors)
 db.userComments.belongsTo(db.Users);
 db.userComments.hasMany(db.commentsReply, { onDelete: "cascade" })
 db.userReviews.belongsTo(db.Users);
 db.commentsReply.belongsTo(db.userComments);
+db.supervisorComment.hasMany(db.supervisorCommentsReply);
+db.supervisorCommentsReply.belongsTo(db.supervisorComment)
 sequelize.sync().then(() => {
    console.log('tables created successfully!');
 }).catch((error) => {

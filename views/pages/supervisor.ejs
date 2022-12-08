@@ -1,166 +1,226 @@
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css"
-    integrity="sha512-xh6O/CkQoPOWDdYTDqeRdPCVd1SpvCA9XXcUnZS2FmJNp1coAFzvtCN9BmamE+4aHK8yyUHUSCcJHgXloTyT2A=="
-    crossorigin="anonymous" referrerpolicy="no-referrer" />
-<div class="container">
-    <br>
-    <a href="/supervisors/registerSupervisor" class="btn btn-primary">Register Supervisor</a>
-    <br>
-    <br>
-    <form name="searchForm" action="/supervisors" method="get">
-        <div class="input-group">
-            <div class="form-outline">
-                <input type="search" id="search" class="form-control" name="search" placeholder="Search by Name" />
+<style>
+    .wrapper {
+        display: inline-block;
+    }
+
+    .wrapper * {
+        float: right;
+    }
+
+    input[type=radio] {
+        display: none;
+    }
+
+    label {
+        font-size: 30px;
+    }
+
+    input:checked~label {
+        color: orange;
+    }
+
+    /*
+label:hover,
+label:hover ~ label {
+  color: red;
+}
+*/
+    /*
+input:checked ~ label:hover,
+input:checked ~ label:hover ~ label {
+  color: lime !important;
+}
+*/
+</style>
+<div class="row">
+    <div class="col-md-3">
+        <div class="wsk-cp-product">
+            <div class="wsk-cp-img">
+                <img src="/img/<%= supervisor[0].profilePic %>" alt="supervisor" class="img-responsive" />
             </div>
-            <button type="submit" class="btn btn-primary">
-                <i class="fas fa-search"></i>
-            </button>
-        </div>
-    </form>
-</div>
-<div class="shell">
-    <div class="container">
-        <button class="btn" onclick="listView()"><i class="fa fa-bars"></i> List</button>
-        <button class="btn active" onclick="gridView()"><i class="fa fa-th-large"></i> Grid</button>
-        <div id="Card" class="row">
-            <% for(var i=0; i < data.length; i++) { %>
-                <div class="col-md-3">
-                    <div class="wsk-cp-product">
-                        <div class="wsk-cp-img">
-                            <img src="img/<%= data[i].profilePic %>" alt="Supervisor" class="img-responsive" />
-                        </div>
-                        <div class="wsk-cp-text">
-                            <div class="category">
-                                <span>
-                                    <%= data[i].name %>
-                                </span>
-                            </div>
-                            <div class="title-product">
-                                <h3>Age: <%= data[i].dob %>
-                                </h3>
-                            </div>
-                            <div class="description-prod">
-                                <p>
-                                    <%= data[i].email%>
-                                </p>
-                            </div>
-                            <form name="regForm" action="/supervisors/delete" method="post">
-                                <input data-confirm="Are you sure?" type="hidden" value="<%= data[i].id %>" id="id"
-                                    name="id">
-                                <input class="btn btn-primary" type="submit" value="Delete">
-                            </form>
-                            <form name="regForm" action="/supervisors/updateSupervisor" method="get">
-                                <input type="hidden" value="<%= data[i].id %>" id="id" name="id">
-                                <input class="btn btn-primary" type="submit" value="Update">
-                            </form>
-                        </div>
-                    </div>
+            <div class="wsk-cp-text">
+                <div class="category">
+                    <span>
+                        <%= supervisor[0].name %>
+                    </span>
                 </div>
-                <% } %>
-        </div>
-        <table id="List" class="table" style="display:none;">
-            <thead>
-                <tr>
-                    <th scope="col">#</th>
-                    <th scope="col">Picture</th>
-                    <th scope="col">Email</th>
-                    <th scope="col">Name</th>
-                </tr>
-            </thead>
-            <tbody>
-                <% for(var i=0; i < data.length; i++) { %>
-                    <tr>
-                        <th scope="row">
-                            <%= data[i].id %>
-                        </th>
-                        <td><img src="img/<%= data[i].profilePic %>" alt="Supervisor" width="150px" height="150px" /></td>
-                        <td>
-                            <%= data[i].email%>
-                        </td>
-                        <td>
-                            <%= data[i].name %>
-                        </td>
-                        <td>
-                            <form name="regForm" action="/supervisors/delete" method="post">
-                                <input data-confirm="Are you sure?" type="hidden" value="<%= data[i].id %>" id="id"
-                                    name="id">
-                                <input class="btn btn-primary" type="submit" value="Delete">
-                            </form>
-                        </td>
-                        <td>
-                            <form name="regForm" action="/supervisors/updateSupervisor" method="get">
-                                <input type="hidden" value="<%= data[i].id %>" id="id" name="id">
-                                <input class="btn btn-primary" type="submit" value="Update">
-                            </form>
-                        </td>
-                    </tr>
+                <div class="title-product">
+                    <h3>DOB: <%= supervisor[0].dob %>
+                    </h3>
+                </div>
+                <div class="title-product">
+                    <h3>Role: <%= supervisor[0].role %>
+                    </h3>
+                </div>
+                <div class="title-product">
+                    <h3>supervisor Ratings:
+                        <% for(let i=0;i<rating;i++){ %>
+                            <span style="color: orange;font-size:x-large; ">&#10038</span>
+                            <% } %>
+                    </h3>
+                </div>
+                <div class="title-product">
+                    <h3>ID: <%= supervisor[0].id %>
+                    </h3>
+                </div>
+                <div class="description-prod">
+                    <p>
+                        <%= supervisor[0].email%>
+                    </p>
+                </div>
+                <% if(role=="admin" ) {%>
+                    <form name="regForm" action="/supervisors/delete" method="post">
+                        <input data-confirm="Are you sure?" type="hidden" value="<%= supervisor[0].id %>" id="id" name="id">
+                        <input class="btn btn-primary" type="submit" value="Delete">
+                    </form>
+                    <form name="regForm" action="/supervisors/updateSupervisor" method="get">
+                        <input type="hidden" value="<%= supervisor[0].id %>" id="id" name="id">
+                        <input class="btn btn-primary" type="submit" value="Update">
+                    </form>
                     <% } %>
-            </tbody>
-        </table>
-        <div class="clearfix">
-            <div class="hint-text">
-                Showing <b>
-                    <%= data.length%>
-                </b> out of
-                <b>
-                    <%= supervisorCount%>
-                </b> Movies
-            </div>
-            <div>
-                <nav aria-label="...">
-                    <ul class="pagination">
-                        <li class="page-item <%=(page==1)?`disabled`:``%>">
-                            <a class="page-link" href="/supervisors?page=<%=(page==1)?`1`:`${page-1}`%>"
-                                tabindex="-1">Previous</a>
-                        </li>
-                        <% for(let pageCount=1; pageCount<=totalPages; pageCount++){ %>
-                            <%if(pageCount==page) {%>
-                                <li class="page-item active">
-                                    <a class="page-link" href="#">
-                                        <%= pageCount%><span class="sr-only">(current)</span>
-                                    </a>
-                                </li>
-                                <%}else{%>
-                                    <li class="page-item"><a class="page-link" href="/supervisors?page=<%=pageCount%>">
-                                            <%= pageCount%>
-                                        </a></li>
-                                    <%} }%>
-                                        <li class="page-item <%=(page==totalPages)?`disabled`:``%>">
-                                            <a class="page-link"
-                                                href="/supervisors?page=<%=(page==totalPages)?`totalPages`:`${Number(page)+1}`%>">Next</a>
-                                        </li>
-                    </ul>
-                </nav>
             </div>
         </div>
     </div>
-    <script>
-        // Get the elements with class="column"
-        var elements = document.getElementsByClassName("col-md-3");
-        var Card = document.getElementById("Card")
-        var List = document.getElementById("List")
-        // Declare a loop variable
-        var i;
+    <div class="col-md-3">
+        <br>
+        <button onclick="getComments()">Show Comments</button>
+        <button onclick="hideComments()">Hide Comments</button>
+        <br>
+        <br>
+        <div id="comments" style="overflow-y: scroll; height:500px;">
 
-        // List View
-        function listView() {
-            List.style.display = "block";
-            Card.style.display = "none";
-        }
+        </div>
+        <form name="commentFrm" action="/supervisors/supervisor/addComment" method="post">
+            <label for="comment">Enter Comment</label>
+            <br>
+            <input type="text" id="comment" name="comment" placeholder="Enter your comment...">
+            <input type="hidden" value="<%= supervisor[0].id %>" id="id" name="id">
+            <input type="hidden" value="<%= username %>" id="username" name="username">
+            <input type="hidden" value="<%= supervisor[0].email %>" id="email" name="email">
+            <input type="submit" value="Post">
+        </form>
+    </div>
+    <div class="col-md-3">
+        <br>
+        <button onclick="getRatings()">Show Ratings</button>
+        <button onclick="hideRatings()">Hide Ratings</button>
+        <br>
+        <br>
+        <div id="ratings" style="overflow-y: scroll; height:500px;">
+        </div>
+        <form name="ratingsFrm" action="/supervisors/supervisor/addRatings" method="post">
+            <label for="ratings">Rate and Review</label>
+            <br>
+            <div class="wrapper">
+                <input type="radio" id="r1" name="rg1" value="1">
+                <label for="r1">&#10038;</label>
+                <input type="radio" id="r2" name="rg2" value="2">
+                <label for="r2">&#10038;</label>
+                <input type="radio" id="r3" name="rg3" value="3">
+                <label for="r3">&#10038;</label>
+                <input type="radio" id="r4" name="rg4" value="4">
+                <label for="r4">&#10038;</label>
+                <input type="radio" id="r5" name="rg5" value="5">
+                <label for="r5">&#10038;</label>
+            </div>
+            <br>
+            <input type="text" id="review" name="review" placeholder="Enter your review...">
+            <input type="hidden" value="<%= supervisor[0].id %>" id="id" name="id">
+            <input type="hidden" value="<%= username %>" id="username" name="username">
+            <input type="submit" value="Post">
+        </form>
+    </div>
+    <br>
+    <div class="col-md-3">
+        <br>
+        <form name="notifForm" action="/sent" method="post">
+            <input type="hidden" value="<%= supervisor[0].id %>" id="id" name="id">
+            <input type="hidden" value="<%= supervisor[0].email %>" id="candidateEmail" name="candidateEmail">
+            <input type="hidden" value="<%= supervisor[0].name %>" id="candidateFirstName" name="candidateFirstName">
+            <input type="text" id="officialPosition" name="officialPosition" placeholder="Enter your position...">
+            <input type="text" id="officialFullName" name="officialFullName" placeholder="Enter your Full Name...">
+            <input type="submit" value="Send Notification">
+        </form>
+    </div>
+</div>
 
-        // Grid View
-        function gridView() {
-            List.style.display = "none";
-            Card.style.display = "flex";
-        }
+<script>
+    function getComments() {
+        const xhttp = new XMLHttpRequest();
+        xhttp.onload = function () {
+            text = JSON.parse(this.responseText);
+            for (let i = 0; i < this.responseText.length; i++) {
+                document.getElementById("comments").innerHTML +=
+                    `<div class="card border-primary mb-3" style="max-width: 18rem;">
+                    <div class="card-header">${text[i].username}</div>
+                    <div class="card-body text-primary">
+                        <p class="card-text">${text[i].comment}</p>
+                        <button onclick="getReplies(${text[i].id})">Show</button>
+                        <button onclick="hideReplies()">Hide</button>
+                        <div id="reply" style="overflow-y: scroll; height:100px;">
 
-        /* Optional: Add active class to the current button (highlight it) */
-        var container = document.getElementById("btnContainer");
-        var btns = container.getElementsByClassName("btn");
-        for (var i = 0; i < btns.length; i++) {
-            btns[i].addEventListener("click", function () {
-                var current = document.getElementsByClassName("active");
-                current[0].className = current[0].className.replace(" active", "");
-                this.className += " active";
-            });
+                        </div>
+                        <form name="replyFrm" action="/supervisors/supervisor/addCommentReply?supervisorID=<%=supervisor[0].id%>" method="post">
+                            <label for="comment">Enter Reply</label>
+                            <br>
+                            <input type="text" id="reply" name="reply" placeholder="Enter your reply...">
+                            <input type="hidden" value="${text[i].id}" id="id" name="id">
+                            <input type="hidden" value="<%= username %>" id="username" name="username">
+                            <input type="submit" value="Post">
+                        </form>
+                    </div>
+                </div>`
+            }
         }
-    </script>
+        xhttp.open("GET", `/supervisors/supervisor/getComments?id=<%=supervisor[0].id%>`);
+        xhttp.send();
+    }
+    function hideComments() {
+        document.getElementById("comments").innerHTML = "";
+    }
+    function getRatings() {
+        const xhttp = new XMLHttpRequest();
+        xhttp.onload = function () {
+            text = JSON.parse(this.responseText);
+            for (let i = 0; i < this.responseText.length; i++) {
+                document.getElementById("ratings").innerHTML += `&nbsp&nbsp&nbsp&nbsp`;
+                for (let j = 0; j < text[i].ratings; j++) {
+                    document.getElementById("ratings").innerHTML += `<span style="color: orange;font-size:x-large; ">&#10038</span>`
+                }
+                document.getElementById("ratings").innerHTML +=
+                    `<div class="card border-primary mb-3" style="max-width: 18rem;">
+                    <div class="card-header">${text[i].username}</div>
+                    <div class="card-body text-primary">
+                        <p class="card-text">${text[i].review}</p><p class="card-text">
+                   </div>
+                </div>`
+            }
+        }
+        xhttp.open("GET", `/supervisors/supervisor/getRatings?id=<%=supervisor[0].id%>`);
+        xhttp.send();
+    }
+    function hideRatings() {
+        document.getElementById("ratings").innerHTML = "";
+    }
+
+    function getReplies(id) {
+        const xhttp = new XMLHttpRequest();
+        xhttp.onload = function () {
+            text = JSON.parse(this.responseText);
+            for (let i = 0; i < this.responseText.length; i++) {
+                document.getElementById("reply").innerHTML +=
+                    `<div class="card border-primary mb-3" style="max-width: 18rem;">
+                    <div class="card-header">${text[i].username}</div>
+                    <div class="card-body text-primary">
+                        <p class="card-text">${text[i].reply}</p><p class="card-text">
+                   </div>
+                </div>`
+            }
+        }
+        xhttp.open("GET", `/supervisors/supervisor/getCommentReply?id=${id}`);
+        xhttp.send();
+    }
+    function hideReplies() {
+        document.getElementById("reply").innerHTML = "";
+    }
+</script>
